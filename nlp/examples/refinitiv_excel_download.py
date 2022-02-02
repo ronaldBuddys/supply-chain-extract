@@ -162,6 +162,12 @@ if __name__ == "__main__":
     # check files in download directory - used to determine new files
     old_file_list = np.array(os.listdir(data_dir))
 
+    # NOTE: specifying not to be prompted to save xlsx file was
+    # not working as expected - needed to change in
+    # FireFox -> (hamburger, 3 horizontal lines, right side) -> (scroll down to) Applications ->
+    # select action for Microsoft Excel Worksheet: Save File
+    # - this needs to be done in the profile before running with selenium (profile gets copied?)
+
     # download button
     if page_info == "TREE":
         excel_btn = browser.find_element_by_tag_name("app-excel-export")
