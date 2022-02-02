@@ -1,0 +1,5 @@
+{
+  "firefox": "/home/<username>/.mozilla/firefox/abc123.<profile_name>",
+  "comment": "on ubuntu the path of a firefox profile can look similar to above"
+}
+
