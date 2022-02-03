@@ -156,6 +156,11 @@ def search_page_info(browser, ticker, page_info, sleep=2):
     # send keys (search)
     print(f"entering ticker: {ticker} in search bar. sleep: {sleep} b/w actions")
     tb_input.click()
+    time.sleep(sleep/2)
+    # clear is not working?
+    tb_input.clear()
+    # add BACKSPACE
+    tb_input.send_keys(Keys.BACKSPACE)
     time.sleep(sleep)
     tb_input.send_keys(ticker + " " + page_info)
     time.sleep(sleep)
@@ -186,9 +191,50 @@ def excel_download_button(browser, page_info):
 
     return excel_btn
 
+
+def switch_to_relevant_iframe(browser, page_info, page_long_name):
+    print("switching to relevant iframes")
+    # switch to default content - top iframe?
+    browser.switch_to.default_content()
+    browser.switch_to.frame("AppFrame")
+    browser.switch_to.frame("internal")
+    browser.switch_to.frame("AppFrame")
+
+    # HARCODED: find iframe with 'Corp' in src? - will this always work?
+    iframe = [i
+              for i in browser.find_elements_by_tag_name("iframe")
+              if re.search("Corp", re.sub(base_url, "", i.get_attribute("src")))]
+    try:
+        assert len(iframe) > 0, "expected more than one iframe with 'Corp' in 'src' attribute"
+    except AssertionError as e:
+        print(e)
+        return -1
+        # except_count += 1
+        # continue
+
+    browser.switch_to.frame(iframe[0])
+
+    # AppFrame - again
+    browser.switch_to.frame("AppFrame")
+
+    # HARCODED: found page_long_name[page_info] in 'src'
+    iframe = [i
+              for i in browser.find_elements_by_tag_name("iframe")
+              if re.search(page_long_name[page_info], re.sub(base_url, "", i.get_attribute("src")))]
+
+    assert len(iframe) > 0, "expected more than one iframe from page_long_name[page_info] in 'src' attribute"
+    browser.switch_to.frame(iframe[0])
+
+    # AppFrame - again!!
+    browser.switch_to.frame("AppFrame")
+
+    return 0
+
+
 if __name__ == "__main__":
 
     pd.set_option("display.max_columns", 100)
+    # TODO: for those that are not downloading - add to a list, of issue_downloading to do manually later
     # TODO: wrap up below into function(s) or maybe class
     # TODO: should read from file / table
     # TODO: should cross reference against already fetched
@@ -220,6 +266,9 @@ if __name__ == "__main__":
 
     # maximum number of tickers to fetch
     max_fetch = 30
+
+    # maximum number of exceptions to allow
+    max_except = 10
 
     # load a json containing a path to firefox 'profile'
     with open(get_configs_path("profiles.json"), "r") as f:
@@ -282,7 +331,7 @@ if __name__ == "__main__":
     browser.get(refin_url)
 
     print("sleep while login page loads, if already logged in should eventually go to workspace")
-    time.sleep(30)
+    time.sleep(3*base_sleep)
 
     # TODO: handle login
     # NOTE: found that the below if statement could be true, but then previously
@@ -340,7 +389,20 @@ if __name__ == "__main__":
         pwd_input.send_keys(Keys.RETURN)
 
         # just hit enter? or click on 'Sign In'?
-        browser.send_keys(Keys.RETURN)
+        # browser.send_keys(Keys.RETURN)
+
+        # TODO: check if asking to Sign out of previous session
+        try:
+            time.sleep(base_sleep)
+            form = [f for f in browser.find_elements_by_tag_name("form") if f.get_attribute("name") == "frmSignIn"]
+            form = form[0]
+            sign_in = [d for d in form.find_elements_by_tag_name("div") if d.text == 'Sign In'][0]
+            sign_in.click()
+            # time.sleep(4*base_sleep)
+
+        except Exception as e:
+            print(e)
+
 
     # NOTE: can be very, very slow to load!
     print("having a quick nap while page loads")
@@ -359,6 +421,8 @@ if __name__ == "__main__":
     # ---
     # get downloaded file information
     # ---
+
+    except_count = 0
 
     for pass_num in range(num_passes):
         print("*"*100)
@@ -389,6 +453,10 @@ if __name__ == "__main__":
                 print("hit max_fetch, stopping (this pass)")
                 break
 
+            if except_count > max_except:
+                print("too many exception occurred, forcing stop")
+                break
+
             print("-"*10)
             # show why fetching this ticker?
             if ticker in prev_fetched["Identifier"].values:
@@ -408,37 +476,16 @@ if __name__ == "__main__":
             # wait to load - should be checking page
             # TODO: should be checking if page has loaded
             print("quick snooze")
-            time.sleep(base_sleep)
+            time.sleep(base_sleep/2)
 
             # TODO: add print statements
-            print("switching to relevant iframes")
-            # switch to default content - top iframe?
-            browser.switch_to.default_content()
-            browser.switch_to.frame("AppFrame")
-            browser.switch_to.frame("internal")
-            browser.switch_to.frame("AppFrame")
+            switch_resp = switch_to_relevant_iframe(browser, page_info, page_long_name)
 
-            # HARCODED: find iframe with 'Corp' in src? - will this always work?
-            iframe = [i
-                      for i in browser.find_elements_by_tag_name("iframe")
-                      if re.search("Corp", re.sub(base_url, "", i.get_attribute("src")))]
+            if switch_resp < 0:
+                print("issue switching to iframe, skipping")
+                continue
 
-            assert len(iframe) > 0, "expected more than one iframe with 'Corp' in 'src' attribute"
-            browser.switch_to.frame(iframe[0])
-
-            # AppFrame - again
-            browser.switch_to.frame("AppFrame")
-
-            # HARCODED: found page_long_name[page_info] in 'src'
-            iframe = [i
-                      for i in browser.find_elements_by_tag_name("iframe")
-                      if re.search(page_long_name[page_info], re.sub(base_url, "", i.get_attribute("src")))]
-
-            assert len(iframe) > 0, "expected more than one iframe from page_long_name[page_info] in 'src' attribute"
-            browser.switch_to.frame(iframe[0])
-
-            # AppFrame - again!!
-            browser.switch_to.frame("AppFrame")
+            time.sleep(2)
 
             # REMOVE!
             # check files in download directory - used to determine new files
@@ -458,24 +505,30 @@ if __name__ == "__main__":
             except selenium.common.exceptions.NoSuchElementException as e:
                 # This error happens with big companies?
                 print(e)
-                print("trouble finding button? refresh page, have shnooze and then try again")
-                browser.refresh()
-                time.sleep(5*base_sleep)
-                try:
-                    excel_btn = excel_download_button(browser, page_info)
-                    time.sleep(base_sleep)
-                except selenium.common.exceptions.NoSuchElementException as e:
-                    print(e)
-                    print("giving up and skipping")
-                    base_sleep *= 1.1
-                    continue
+                except_count += 1
+                continue
+                # print(e)
+                # print("trouble finding button? refresh page, have shnooze and then try again")
+                # browser.refresh()
+                # time.sleep(5*base_sleep)
+                # try:
+                #     excel_btn = excel_download_button(browser, page_info)
+                #     time.sleep(base_sleep)
+                # except selenium.common.exceptions.NoSuchElementException as e:
+                #     print(e)
+                #     print("giving up and skipping")
+                #     base_sleep *= 1.1
+                #     except_count += 1
+                #     continue
 
             if excel_btn.is_displayed():
                 excel_btn.click()
             else:
-                print("download button is not displayed!? - refreshing page and trying again")
-                browser.refresh()
-                time.sleep(2.5*base_sleep)
+                # print("download button is not displayed!? - refreshing page and trying again")
+                print("download button is not displayed!?, skipping")
+                continue
+                # browser.refresh()
+                # time.sleep(2.5*base_sleep)
 
                 try:
                     excel_btn = excel_download_button(browser, page_info)
@@ -486,6 +539,7 @@ if __name__ == "__main__":
                     # TODO: keep track of how often this occurs? break if too many
                     # browser.refresh()
                     base_sleep *= 1.1
+                    except_count += 1
                     continue
                 except selenium.common.exceptions.NoSuchElementException as e:
                     print(e)
@@ -493,6 +547,7 @@ if __name__ == "__main__":
                     # TODO: keep track of how often this occurs? break if too many
                     # browser.refresh()
                     base_sleep *= 1.1
+                    except_count += 1
                     continue
 
             # HACK: sleep to allow for download
