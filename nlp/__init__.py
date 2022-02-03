@@ -15,3 +15,7 @@ def get_configs_path(*sub_dir):
 
 def get_data_path(*sub_dir):
     return os.path.join(get_path('data'), *sub_dir)
+
+
+def get_image_path(*sub_dir):
+    return os.path.join(get_path('images'), *sub_dir)

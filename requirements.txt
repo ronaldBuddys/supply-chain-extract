@@ -5,6 +5,6 @@ OpenPermID==0.5
 selenium==3.141.0
 beautifulsoup4==4.10.0
 openpyxl==3.0.9
-
-
+pyautogui==0.9.53
+pillow==9.0.1
 
