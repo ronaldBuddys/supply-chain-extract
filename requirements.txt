@@ -4,5 +4,7 @@ nltk==3.6.7
 OpenPermID==0.5
 selenium==3.141.0
 beautifulsoup4==4.10.0
+openpyxl==3.0.9
+
 
 
