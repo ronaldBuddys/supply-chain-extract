@@ -27,6 +27,22 @@ from nlp.browser import start_browser
 from nlp import get_configs_path, get_data_path, get_image_path
 
 
+
+def ran_sleep(low=1, upper=None, scale=None):
+    if upper is None:
+        if scale is None:
+            scale = 0.1
+        upper = low * (1 + scale)
+    time.sleep(np.random.uniform(low, upper))
+
+
+def type_text(inp, text, low=0.1, upper=0.25, scale=None):
+    assert isinstance(text, str), f"text needs to be string, its: {type(text)}"
+    for t in text:
+        ran_sleep(low=low, upper=upper, scale=scale)
+        inp.send_keys(t)
+
+
 def and_list_of_bools(x):
     """given a list of bools array (assumed to equal size!) combine with '&' operator"""
     assert isinstance(x, list), "input needs to be a list"
@@ -168,6 +184,102 @@ def get_previously_fetch_and_select_subset(data_dir, page_info, select=None, see
     return fetch_id, prev_fetched
 
 
+def get_all_suppliers(data_dir, page_info, parent_ticker, select=None, max_depth=2):
+
+    print("getting ALL previously fetched data")
+    # previously downloaded files
+    # - get just the ticker name
+    fetched_files = [i for i in os.listdir(data_dir) if re.search(f"_{page_info}.xlsx$", i)]
+    # fetched_tickers = [re.sub(f"_{page_info}.xlsx$", "", i) for i in fetched_files]
+
+    # read in previously fetched - to determine what to fetch next
+    prev_fetched = [read_fetched_file(os.path.join(data_dir, i)) for i in fetched_files]
+
+    # TODO: handle if None were previously fetched
+    # TODO: determine if fetched data will always have the same columns! - ohh the inflexibility of tabular data
+    try:
+        prev_fetched = pd.concat(prev_fetched)
+    except Exception as e:
+        prev_fetched = pd.DataFrame(columns=['Parent Name', 'Parent Id', 'Identifier', 'Company Name', 'Type',
+                                             'Relationship', 'Country/Region', 'Industry', 'Confidence Score (%)',
+                                             'Last Update Date', 'Days Since Last Update', 'Freshness',
+                                             'Snippet Count', 'Revenue (USD)', 'EQ Score', 'Implied Rating',
+                                             'fetch_time'])
+
+    # get all previously fetched
+    # all_parent_id = np.unique(prev_fetched["Parent Id"].values)
+
+    # convert some columns to str
+    prev_fetched["Identifier"] = prev_fetched["Identifier"].values.astype('str')
+    prev_fetched["Parent Id"] = prev_fetched["Parent Id"].astype('str')
+
+    # store the full previously fetched data - for reference
+    pf = prev_fetched.copy(True)
+
+    # ---
+    # select subset based on some criteria
+    # ---
+
+    # potential new fetch should be those only that meet selection criteria
+    if select is None:
+        print("no selection criteria given: selecting all!")
+        select_bool = [np.ones(len(prev_fetched), dtype=bool)]
+    else:
+        print("selecting entries based on:")
+        print(json.dumps(select, indent=4))
+
+        select_bool = [(prev_fetched[k] >= v).values for k,v in select.items()]
+
+    # selection criteria will be AND together
+    # TODO: review this, allow for OR
+    select_bool = and_list_of_bools(select_bool)
+
+    print(f"of {len( prev_fetched )} companies to fetch from, will select a subset of: {select_bool.sum()}")
+
+    prev_fetched = prev_fetched.loc[select_bool]
+
+    # ----
+    # given a parent ticker - get its suppliers, and theirs, and theirs, and so on
+    # ---
+
+    # given the parent - get
+    keep_looking = True
+    # get track of parents where already 'got suppliers'
+    got_suppliers = []
+    parents = np.array([parent_ticker])
+    # TODO: could put in a max_depth into get_all_suppliers
+    # depth = 1
+    while keep_looking:
+        # depth += 1
+        parents_len = len(parents)
+        print(f"number of parents: {parents_len}")
+        # for each 'parent'/customer get their suppliers
+        all_suppliers = []
+        for p in parents:
+            if p not in got_suppliers:
+                b = (prev_fetched["Relationship"] == "Supplier") & (prev_fetched["Parent Id"] == p)
+                supplies = np.unique(prev_fetched.loc[b, "Identifier"].values)
+                got_suppliers += [p]
+                all_suppliers += [supplies]
+        # concatenate all suppliers to parents
+        parents = np.concatenate([parents] + all_suppliers)
+        parents = np.unique(parents)
+
+        if parents_len == len(parents):
+            keep_looking = False
+
+    # ----
+    # return
+    # ---
+
+    # company ids to search for - those not yet found
+    fetch_id = parents[~np.in1d(parents, pf["Parent Id"].values)]
+
+
+    return fetch_id, pf
+
+
+
 def search_page_info(browser, ticker, page_info, sleep=2):
 
     # TODO: wrap up searching for a tickername (plus page_info) into a method
@@ -186,16 +298,21 @@ def search_page_info(browser, ticker, page_info, sleep=2):
     # send keys (search)
     print(f"entering ticker: {ticker} in search bar. sleep: {sleep} b/w actions")
     tb_input.click()
-    time.sleep(sleep/2)
+    ran_sleep(sleep/2)
     # clear is not working?
     tb_input.clear()
     # add BACKSPACE
     tb_input.send_keys(Keys.BACKSPACE)
-    time.sleep(sleep)
-    tb_input.send_keys(ticker + " " + page_info)
-    time.sleep(sleep)
+    ran_sleep(sleep/2)
+    # 'simulate' typing
+    type_string = ticker + " " + page_info
+    type_text(tb_input, type_string)
+    # for ts in type_string:
+    #     time.sleep(np.random.uniform(*type_sleep))
+    #     tb_input.send_keys(ts)
+    ran_sleep(sleep)
     tb_input.send_keys(Keys.RETURN)
-    time.sleep(1.5 * sleep)
+    ran_sleep(1.5*sleep)
     print("search_page_info: COMPLETE")
 
 
@@ -294,6 +411,63 @@ def check_page_for_no_result():
 
     return False
 
+
+def refin_login(uname,pwd ):
+
+
+    # NOTE: there are name="IDToken1"
+    # NOTE: was having issuing with sending test to input, need to click on it?
+
+    # TODO: add try /excepts here for error handling
+
+    all_inputs = browser.find_elements_by_tag_name('input')
+
+    # identify input cells
+    uname_input = [i for i in all_inputs if i.get_attribute("placeholder") == "User ID"]
+    pwd_input = [i for i in all_inputs if i.get_attribute("placeholder") == "Password"]
+
+    # TODO: but a check here to sleep and try again if len(uname_input) == 0
+
+    # ---
+    # username input
+    # ---
+    print("entering username")
+    uname_input = uname_input[0]
+    uname_input.click()
+    time.sleep(2)
+    type_text(uname_input, uname)
+    # uname_input.send_keys(uname)
+    time.sleep(2)
+    # ---
+    # password input
+    # ---
+
+    print("entering password")
+    pwd_input = pwd_input[0]
+    pwd_input.click()
+    time.sleep(2)
+    # pwd_input.send_keys(pwd)
+    type_text(pwd_input, pwd)
+    time.sleep(2)
+    pwd_input.send_keys(Keys.RETURN)
+
+    # just hit enter? or click on 'Sign In'?
+    # browser.send_keys(Keys.RETURN)
+
+    # TODO: check if asking to Sign out of previous session
+    try:
+        time.sleep(base_sleep)
+        form = [f for f in browser.find_elements_by_tag_name("form") if f.get_attribute("name") == "frmSignIn"]
+        form = form[0]
+        sign_in = [d for d in form.find_elements_by_tag_name("div") if d.text == 'Sign In'][0]
+        sign_in.click()
+        # time.sleep(4*base_sleep)
+
+    except Exception as e:
+        print(e)
+
+
+
 if __name__ == "__main__":
 
     pd.set_option("display.max_columns", 100)
@@ -328,15 +502,16 @@ if __name__ == "__main__":
     # under CODES: Company PERMID
 
     # maximum number of tickers to fetch
-    max_fetch = 30
+    max_fetch = 100
 
     # maximum number of exceptions to allow
-    # max_except = 10
+    max_errors = 10
 
     # load a json containing a path to firefox 'profile'
     # REMOVE: this if not needed
-    # with open(get_configs_path("profiles.json"), "r") as f:
-    #     profiles = json.load(f)
+    # TODO: allow for a default if not provided
+    with open(get_configs_path("profiles.json"), "r") as f:
+        profiles = json.load(f)
 
     # fetch modulus
     # - determine which company numbers to fetch
@@ -367,12 +542,21 @@ if __name__ == "__main__":
     # TODO: this should be an input arg or read from file - input arg could be file name
     select = {
         "Confidence Score (%)": 0.95,
-        "Last Update Date": "2018-01-01"
+        "Last Update Date": "2017-01-01"
     }
     # "Industry": {"operator": "in", "value": ['Auto, Truck & Motorcycle Parts', 'Auto & Truck Manufacturers']}
     # TODO: need to have a think about how to best keep focus - not branch too far out (if so desired)
     # select from specific industries? set to None if want everything
-    industry_select = ['Auto, Truck & Motorcycle Parts', 'Auto & Truck Manufacturers']
+    industry_select = [
+        'Auto & Truck Manufacturers',
+        'Auto Vehicles, Parts & Service Retailers',
+        'Auto, Truck & Motorcycle Parts',
+        'Ground Freight & Logistics',
+        'Heavy Machinery & Vehicles',
+        'Iron & Steel',
+        'Tires & Rubber Products',
+        'Semiconductor Equipment & Testing']
+    # industry_select = None
 
     # --
     # location to download files to
@@ -388,9 +572,9 @@ if __name__ == "__main__":
     # ---
 
     # provide the
-    # browser = start_browser(profile_loc=profiles["firefox"], out_dir=data_dir)
+    browser = start_browser(profile_loc=profiles["firefox"], out_dir=data_dir)
     # no profile - easier to identify as a bot?
-    browser = start_browser(profile_loc=None, out_dir=data_dir)
+    # browser = start_browser(profile_loc=None, out_dir=data_dir)
 
     # visit refinitiv workspace
     refin_url = "https://workspace.refinitiv.com/web"
@@ -399,7 +583,7 @@ if __name__ == "__main__":
     browser.get(refin_url)
 
     print("sleep while login page loads, if already logged in should eventually go to workspace")
-    time.sleep(3*base_sleep)
+    ran_sleep(3*base_sleep)
 
     # TODO: handle login
     # NOTE: found that the below if statement could be true, but then previously
@@ -422,67 +606,21 @@ if __name__ == "__main__":
         uname = ref_dets["username"]
         pwd = ref_dets["password"]
 
-        # NOTE: there are name="IDToken1"
-        # NOTE: was having issuing with sending test to input, need to click on it?
-
-        # TODO: add try /excepts here for error handling
-
-        all_inputs = browser.find_elements_by_tag_name('input')
-
-        # identify input cells
-        uname_input = [i for i in all_inputs if i.get_attribute("placeholder") == "User ID"]
-        pwd_input = [i for i in all_inputs if i.get_attribute("placeholder") == "Password"]
-
-        # TODO: but a check here to sleep and try again if len(uname_input) == 0
-
-        # ---
-        # username input
-        # ---
-        print("entering username")
-        uname_input = uname_input[0]
-        uname_input.click()
-        time.sleep(2)
-        uname_input.send_keys(uname)
-        time.sleep(2)
-        # ---
-        # password input
-        # ---
-
-        print("entering password")
-        pwd_input = pwd_input[0]
-        pwd_input.click()
-        time.sleep(2)
-        pwd_input.send_keys(pwd)
-        time.sleep(2)
-        pwd_input.send_keys(Keys.RETURN)
-
-        # just hit enter? or click on 'Sign In'?
-        # browser.send_keys(Keys.RETURN)
-
-        # TODO: check if asking to Sign out of previous session
-        try:
-            time.sleep(base_sleep)
-            form = [f for f in browser.find_elements_by_tag_name("form") if f.get_attribute("name") == "frmSignIn"]
-            form = form[0]
-            sign_in = [d for d in form.find_elements_by_tag_name("div") if d.text == 'Sign In'][0]
-            sign_in.click()
-            # time.sleep(4*base_sleep)
-
-        except Exception as e:
-            print(e)
+        # login to refinitiv
+        refin_login(uname, pwd)
 
 
     # NOTE: can be very, very slow to load!
     print("having a quick nap while page loads")
     # TODO: change this to react to page - check for elements to be loaded
-    time.sleep(5 * base_sleep)
+    ran_sleep(4.5 * base_sleep)
     print("awake")
 
     # TODO: here check if landed on base_url
     # TODO: do this better, besides just waiting more
     if not bool(re.search(base_url, browser.current_url)):
         print(f"current url does not contain:\n{base_url}\nsleeping more")
-        time.sleep(3 * base_sleep)
+        ran_sleep(3 * base_sleep)
 
     assert bool(re.search(base_url, browser.current_url)), f"current_url does not contain: {base_url}"
 
@@ -490,7 +628,7 @@ if __name__ == "__main__":
     # get downloaded file information
     # ---
 
-    # Not used?
+    # keep track of exceptions / errors
     except_count = 0
     fetch_count = 0
 
@@ -500,14 +638,15 @@ if __name__ == "__main__":
         print(f"starting pass: {pass_num+1} of {num_passes}")
 
         # get the company ids to fetch, and information on previously fetched
-        fetch_id, prev_fetched = get_previously_fetch_and_select_subset(data_dir,
-                                                                        page_info,
-                                                                        select=select,
-                                                                        seed_tickers=seed_ticker,
-                                                                        industry_select=industry_select)
+        # fetch_id, prev_fetched = get_previously_fetch_and_select_subset(data_dir,
+        #                                                                 page_info,
+        #                                                                 select=select,
+        #                                                                 seed_tickers=seed_ticker,
+        #                                                                 industry_select=industry_select)
 
-        # if search_only_industry is not None:
-
+        fetch_id, prev_fetched = get_all_suppliers(data_dir, page_info,
+                                                   parent_ticker=seed_ticker,
+                                                   select=select)
 
         # read all the bad_ticker data
         # TODO: should this read all bad ticker data ?
@@ -543,9 +682,9 @@ if __name__ == "__main__":
                 print("hit max_fetch, stopping")
                 break
 
-            # if except_count > max_except:
-            #     print("too many exception occurred, forcing stop")
-            #     break
+            if except_count > max_errors:
+                print("too many exception occurred, forcing stop")
+                break
 
             print("-"*10)
             # show why fetching this ticker?
@@ -557,10 +696,19 @@ if __name__ == "__main__":
             # search page information for ticker
             # ---
 
+            old_url = browser.current_url
             search_page_info(browser, ticker, page_info)
 
             print("quick snooze")
-            time.sleep(1.5 * base_sleep)
+            ran_sleep(1.0 * base_sleep)
+
+            new_url = browser.current_url
+
+            if old_url == new_url:
+                print("URL did not change! will re-load")
+                except_count += 1
+                browser.get(base_url)
+                ran_sleep(2.5 * base_sleep)
 
             # ---
             # check page for no_results
@@ -579,7 +727,7 @@ if __name__ == "__main__":
                 # print("going back to previous page")
                 # browser.back()
 
-                time.sleep(1.5 * base_sleep)
+                ran_sleep(1.5 * base_sleep)
 
                 # write bad search results to file - to keep track of
                 # TODO: this could break if ticker is a seed_ticker, should handle
@@ -611,6 +759,7 @@ if __name__ == "__main__":
             for eb in excel_button:
                 button_loc = pyautogui.locateOnScreen(get_image_path(eb))
                 if button_loc is not None:
+                    print("found download button")
                     break
 
             if button_loc is None:
@@ -618,6 +767,7 @@ if __name__ == "__main__":
                 # TODO: consider including as 'bad' ticker - or perhaps use different category
                 # bad_ticker = prev_fetched.loc[prev_fetched["Identifier"] == ticker, :]
                 # write_bad_ticker_no_result_to_file(bad_ticker, data_dir, suffix=fmod)
+                except_count += 1
                 continue
 
             # get the center of button
@@ -630,7 +780,7 @@ if __name__ == "__main__":
             # - should be more careful checking -  see if there are an any 'part' files
             # - or keep checking until there is only one new file
             print("sleeping to let file download")
-            time.sleep(base_sleep)
+            ran_sleep(0.5 * base_sleep)
 
             # ---
             # check for new file
@@ -665,4 +815,4 @@ if __name__ == "__main__":
                       dst=dst_file)
 
             fetch_count += 1
-
+    print("FIN!")
