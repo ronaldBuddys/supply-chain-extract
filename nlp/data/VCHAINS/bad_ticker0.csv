@@ -1,0 +1,10 @@
+Parent Name,Parent Id,Identifier,Company Name,Type,Relationship,Country/Region,Industry,Confidence Score (%),Last Update Date,Days Since Last Update,Freshness,Snippet Count,Revenue (USD),EQ Score,Implied Rating,fetch_time
+Microsoft Corp,4295907168,5034843432,Metalogix Software US Inc,Private,Supplier,United States of America,Software,0.999988796479347,2018-06-29,1315,2,24,20163845.0,,,2022-02-03 14:22:00
+Microsoft Corp,4295907168,4295905952,Cisco Systems Inc,Public,Supplier,United States of America,Communications & Networking,0.999999999999315,2020-08-27 00:00:00,525,4,61,49818000000.0,66.0,A,2022-02-03 14:22:00
+Verizon Communications Inc,4295911976,4295905952,Cisco Systems Inc,Public,Supplier,United States of America,Communications & Networking,0.970569369566395,2021-02-10 00:00:00,358,5,8,49818000000.0,66.0,A,2022-02-03 12:42:00
+AT&T Inc,4295904853,4295905952,Cisco Systems Inc,Public,Supplier,United States of America,Communications & Networking,0.991142974797969,2021-06-04 00:00:00,244,5,11,49818000000.0,66.0,A,2022-02-03 11:21:00
+Microsoft Corp,4295907168,4295908504,Altaba Inc,Public,Customer,United States of America,Closed End Funds,0.999997919323352,2020-05-23 00:00:00,621,4,29,154599000.0,,,2022-02-03 14:22:00
+Google LLC,4295899948,4295908504,Altaba Inc,Public,Customer,United States of America,Closed End Funds,0.993503214729896,2019-03-20 00:00:00,1051,3,11,154599000.0,,,2022-02-03 11:48:00
+BP PLC,4295894740,4296627232,Vitol SA,Private,Supplier,Switzerland,Oil & Gas Refining and Marketing,1.0,2019-03-18 00:00:00,1053,3,240,86446137.4278558,,,2022-02-03 16:40:00
+BP PLC,4295894740,4296627232,Vitol SA,Private,Customer,Switzerland,Oil & Gas Refining and Marketing,1.0,2019-04-22 00:00:00,1018,3,179,86446137.4278558,,,2022-02-03 16:40:00
+Oil and Natural Gas Corporation Ltd,4295872684,4296627232,Vitol SA,Private,Customer,Switzerland,Oil & Gas Refining and Marketing,0.999999504169773,2022-01-12 00:00:00,22,5,30,86446137.4278558,,,2022-02-03 14:40:00
