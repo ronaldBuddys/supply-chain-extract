@@ -1,6 +1,8 @@
 # ignore contents of configs
 nlp/configs/*.json
 
+# pycharm
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
