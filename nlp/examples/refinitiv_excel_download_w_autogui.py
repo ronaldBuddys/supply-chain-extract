@@ -248,9 +248,9 @@ def get_all_suppliers(data_dir, page_info, parent_ticker, select=None, max_depth
     got_suppliers = []
     parents = np.array([parent_ticker])
     # TODO: could put in a max_depth into get_all_suppliers
-    # depth = 1
+    depth = 0
     while keep_looking:
-        # depth += 1
+        depth += 1
         parents_len = len(parents)
         print(f"number of parents: {parents_len}")
         # for each 'parent'/customer get their suppliers
@@ -267,6 +267,9 @@ def get_all_suppliers(data_dir, page_info, parent_ticker, select=None, max_depth
 
         if parents_len == len(parents):
             keep_looking = False
+        elif depth >= max_depth:
+            print("hit max depth down the chain, stopping here")
+            keep_looking = False
 
     # ----
     # return
@@ -279,8 +282,17 @@ def get_all_suppliers(data_dir, page_info, parent_ticker, select=None, max_depth
     return fetch_id, pf
 
 
+def find_image_on_page(image_prefix, print_statement=""):
+    images = [i for i in os.listdir(get_image_path()) if re.search(f"^{image_prefix}", i)]
+    for im in images:
+        loc = pyautogui.locateOnScreen(get_image_path(im))
+        if loc is not None:
+            print(print_statement)
+            print(f"using image: {im}")
+            return loc
 
-def search_page_info(browser, ticker, page_info, sleep=2):
+
+def search_page_info(browser, ticker, page_info, sleep=2, use_gui_api=False):
 
     # TODO: wrap up searching for a tickername (plus page_info) into a method
     # switch to AppFrame (iframe)
@@ -297,7 +309,22 @@ def search_page_info(browser, ticker, page_info, sleep=2):
 
     # send keys (search)
     print(f"entering ticker: {ticker} in search bar. sleep: {sleep} b/w actions")
-    tb_input.click()
+    #
+    if use_gui_api:
+        # TODO: wrp
+        loc = find_image_on_page(image_prefix="search_bar", print_statement="found search bar (magnify glass)")
+        if loc is not None:
+            # get the center of image
+            # - TODO: should click somewhere random in image?
+            point = pyautogui.center(loc)
+            # and click it
+            print("clicking search bar")
+            pyautogui.click(point)
+        else:
+            print("could not find search bar image, can't search")
+            return -1
+    else:
+        tb_input.click()
     ran_sleep(sleep/2)
     # clear is not working?
     tb_input.clear()
@@ -314,6 +341,8 @@ def search_page_info(browser, ticker, page_info, sleep=2):
     tb_input.send_keys(Keys.RETURN)
     ran_sleep(1.5*sleep)
     print("search_page_info: COMPLETE")
+
+    return 1
 
 
 def excel_download_button(browser, page_info):
@@ -502,10 +531,13 @@ if __name__ == "__main__":
     # under CODES: Company PERMID
 
     # maximum number of tickers to fetch
-    max_fetch = 100
+    max_fetch = 40
 
     # maximum number of exceptions to allow
-    max_errors = 10
+    max_errors = 15
+
+    # max dept in supply chain
+    max_depth = 4
 
     # load a json containing a path to firefox 'profile'
     # REMOVE: this if not needed
@@ -547,15 +579,15 @@ if __name__ == "__main__":
     # "Industry": {"operator": "in", "value": ['Auto, Truck & Motorcycle Parts', 'Auto & Truck Manufacturers']}
     # TODO: need to have a think about how to best keep focus - not branch too far out (if so desired)
     # select from specific industries? set to None if want everything
-    industry_select = [
-        'Auto & Truck Manufacturers',
-        'Auto Vehicles, Parts & Service Retailers',
-        'Auto, Truck & Motorcycle Parts',
-        'Ground Freight & Logistics',
-        'Heavy Machinery & Vehicles',
-        'Iron & Steel',
-        'Tires & Rubber Products',
-        'Semiconductor Equipment & Testing']
+    # industry_select = [
+    #     'Auto & Truck Manufacturers',
+    #     'Auto Vehicles, Parts & Service Retailers',
+    #     'Auto, Truck & Motorcycle Parts',
+    #     'Ground Freight & Logistics',
+    #     'Heavy Machinery & Vehicles',
+    #     'Iron & Steel',
+    #     'Tires & Rubber Products',
+    #     'Semiconductor Equipment & Testing']
     # industry_select = None
 
     # --
@@ -646,11 +678,11 @@ if __name__ == "__main__":
 
         fetch_id, prev_fetched = get_all_suppliers(data_dir, page_info,
                                                    parent_ticker=seed_ticker,
-                                                   select=select)
+                                                   select=select,
+                                                   max_depth=max_depth)
 
         # read all the bad_ticker data
-        # TODO: should this read all bad ticker data ?
-        # TODO: the content
+        # TODO: should this read all bad ticker data ? - currently does
         bad_tickers = [pd.read_csv(os.path.join(data_dir, i))
                        for i in os.listdir(data_dir)
                        if re.search("^bad_ticker", i)]
@@ -697,18 +729,33 @@ if __name__ == "__main__":
             # ---
 
             old_url = browser.current_url
-            search_page_info(browser, ticker, page_info)
+            # move mouse to some arbitrary position - to avoid being over magnifying glass
+            pyautogui.moveTo(100, 200)
+            found_search = search_page_info(browser, ticker, page_info, use_gui_api=True)
+            if found_search < 0:
+                print("issue finding search bar, will try using javascript")
+                found_search = search_page_info(browser, ticker, page_info, use_gui_api=False)
+                if found_search < 0:
+                    print("issue finding search bar using gui api")
+                    except_count += 1
+                    continue
+
+
 
             print("quick snooze")
-            ran_sleep(1.0 * base_sleep)
+            ran_sleep(0.9 * base_sleep)
 
             new_url = browser.current_url
 
             if old_url == new_url:
-                print("URL did not change! will re-load")
-                except_count += 1
+                print("URL did not change!")
+                # except_count += 1
+                # print("will skip this one")
+                # continue
+                print("reload app")
                 browser.get(base_url)
                 ran_sleep(2.5 * base_sleep)
+                except_count += 1
 
             # ---
             # check page for no_results
