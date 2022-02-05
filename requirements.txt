@@ -7,4 +7,5 @@ beautifulsoup4==4.10.0
 openpyxl==3.0.9
 pyautogui==0.9.53
 pillow==9.0.1
+opencv-python==4.5.5.62
 
