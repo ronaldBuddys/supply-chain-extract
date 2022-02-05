@@ -141,3 +141,42 @@ Remark Holdings Inc,4295900345,5042936734,Alibaba Cloud Computing Ltd,Private,Cu
 Chinasoft International Ltd,4295871885,5042936734,Alibaba Cloud Computing Ltd,Private,Customer,China,IT Services & Consulting,0.29615936,2013-11-11 00:00:00,3006,1,2,,,,2022-02-03 18:20:00
 Xilinx Inc,4295908502,5042936734,Alibaba Cloud Computing Ltd,Private,Customer,China,IT Services & Consulting,0.559641114624,2017-10-12 00:00:00,1576,2,3,,,,2022-02-04 11:30:00
 Red Hat Inc,4295914696,5042936734,Alibaba Cloud Computing Ltd,Private,Customer,China,IT Services & Consulting,0.559095810816,2017-10-12 00:00:00,1575,2,3,,,,2022-02-03 22:38:00
+Alibaba Group Holding Ltd,5000066483,4297711847,Alipay.com Co Ltd,Private,Supplier,China,Online Services,0.999981403548291,2021-07-27 00:00:00,192,5,23,959398570.568709,,,2022-02-04 11:43:00
+Accenture PLC,4295903017,5044006527,EdCast Inc,Private,Supplier,United States of America,Professional & Business Education,0.30014848,2018-09-03 00:00:00,1250,2,2,4072795.0,,,2022-02-04 11:13:00
+Microsoft Corp,4295907168,5044006527,EdCast Inc,Private,Supplier,United States of America,Professional & Business Education,0.989303671953543,2021-09-27 00:00:00,129,5,10,4072795.0,,,2022-02-03 14:22:00
+EMC Corp,4295903890,5044006527,EdCast Inc,Private,Supplier,United States of America,Professional & Business Education,0.63658199272512,2021-12-14 00:00:00,51,5,4,4072795.0,,,2022-02-03 18:56:00
+Nokia Oyj,4295866480,5050989391,HMD global Oy,Private,Supplier,Finland,Communications & Networking,0.992495679504097,2021-12-21 00:00:00,44,5,11,,,,2022-02-03 11:39:00
+Airbus SE,4295884955,4296045412,Cfm International SA,Private,Supplier,France,Industrial Machinery & Equipment,0.999915625039082,2021-12-16 00:00:00,49,5,20,1898616762.58836,,BBB,2022-02-03 18:36:00
+Safran SA,4295867343,4296045412,Cfm International SA,Private,Supplier,France,Industrial Machinery & Equipment,0.688501781393213,2021-11-17 00:00:00,78,5,6,1898616762.58836,,BBB,2022-02-03 18:17:00
+Safran SA,4295867343,4296045412,Cfm International SA,Private,Customer,France,Industrial Machinery & Equipment,0.637512065184,2019-12-03 00:00:00,793,4,4,1898616762.58836,,BBB,2022-02-03 18:17:00
+Boeing Co,4295903076,4296045412,Cfm International SA,Private,Supplier,France,Industrial Machinery & Equipment,0.995335154466675,2021-06-26 00:00:00,222,5,12,1898616762.58836,,BBB,2022-02-03 12:01:00
+Apple Inc,4295905573,4296328258,Nichia Corp,Private,Supplier,Japan,Commodity Chemicals,1.0,2018-02-01 00:00:00,1463,2,1,,,,2022-02-03 19:04:00
+Apple Inc,4295905573,4296069256,Three Bond Co Ltd,Private,Supplier,Japan,Commodity Chemicals,1.0,2018-02-01 00:00:00,1463,2,1,359543789.759311,,AA-,2022-02-03 19:04:00
+Apple Inc,4295905573,4297108741,Coilcraft Inc,Private,Supplier,United States of America,Electronic Equipment & Parts,1.0,2018-02-01 00:00:00,1463,2,1,325473.0,,,2022-02-03 19:04:00
+Apple Inc,4295905573,4297771520,Seiko Advance Ltd,Private,Supplier,Japan,Paper Products,1.0,2018-02-01 00:00:00,1463,2,1,46312478.1544914,,,2022-02-03 19:04:00
+Meggitt PLC,4295895717,4298073233,Ge Aviation Systems,Private,Customer,United States of America,Aerospace & Defense,0.53759235,2020-12-23 00:00:00,407,5,3,1568157710.0,,,2022-02-03 18:47:00
+Airbus SE,4295884955,4298073233,Ge Aviation Systems,Private,Supplier,United States of America,Aerospace & Defense,0.708636567772545,2021-06-03 00:00:00,245,5,6,1568157710.0,,,2022-02-03 18:36:00
+Air New Zealand Ltd,4295885156,4298073233,Ge Aviation Systems,Private,Supplier,United States of America,Aerospace & Defense,0.3024684,2019-09-24 00:00:00,863,4,2,1568157710.0,,,2022-02-03 12:30:00
+Boeing Co,4295903076,4298073233,Ge Aviation Systems,Private,Supplier,United States of America,Aerospace & Defense,0.978687984616787,2021-06-03 00:00:00,245,5,8,1568157710.0,,,2022-02-03 12:01:00
+General Electric Co,4295903128,4298073233,Ge Aviation Systems,Private,Customer,United States of America,Aerospace & Defense,0.29031,2021-12-20 00:00:00,45,5,2,1568157710.0,,,2022-02-03 12:35:00
+Apple Inc,4295905573,4298247096,Jeou Uei Co Ltd,Private,Supplier,Taiwan,Electrical Components & Equipment,1.0,2018-02-01 00:00:00,1463,2,1,59201115.3085087,,,2022-02-03 19:04:00
+PetroChina Co Ltd,4295864860,4298458436,Hin Leong Trading (Pte) Ltd,Private,Supplier,Singapore,Business Support Services,0.999854404617017,2018-11-15 00:00:00,1176,3,18,3982124.87935259,,,2022-02-03 16:43:00
+PetroChina Co Ltd,4295864860,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.999999999999831,2020-01-15 00:00:00,750,4,59,3982124.87935259,,,2022-02-03 16:43:00
+BP PLC,4295894740,4298458436,Hin Leong Trading (Pte) Ltd,Private,Supplier,Singapore,Business Support Services,0.999999999978209,2019-04-04 00:00:00,1036,3,49,3982124.87935259,,,2022-02-03 16:40:00
+BP PLC,4295894740,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.999999999999992,2019-04-26 00:00:00,1014,3,66,3982124.87935259,,,2022-02-03 16:40:00
+Glencore PLC,5034844193,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.999999999996329,2019-11-11 00:00:00,816,4,54,3991608.24588822,,,2022-02-04 11:51:00
+SK Innovation Co Ltd,4298008784,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.726676865341208,2016-11-17 00:00:00,1904,1,7,3982124.87935259,,,2022-02-03 14:35:00
+NK Lukoil PAO,4295887034,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.999995727008917,2019-11-01 00:00:00,825,4,25,3982124.87935259,,,2022-02-03 18:39:00
+Shell PLC,4295885039,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.999999996738386,2019-12-17 00:00:00,779,4,40,3982124.87935259,,,2022-02-03 18:37:00
+Bharat Petroleum Corporation Ltd,4295872490,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.728595725859522,2016-03-11 00:00:00,2155,1,7,3982124.87935259,,,2022-02-03 18:22:00
+Petroleo Brasileiro SA Petrobras,4295859763,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.3188,2011-10-20 00:00:00,3759,1,2,3982124.87935259,,,2022-02-03 18:13:00
+Conocophillips,4295903051,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.651172774564992,2012-02-17 00:00:00,3639,1,4,3982124.87935259,,,2022-02-03 18:51:00
+Itochu Corp,4295880516,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.31374824,2011-03-08 00:00:00,3985,1,2,3982124.87935259,,,2022-02-03 16:40:00
+Chevron Corp,4295903744,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.998454535349835,2014-11-19 00:00:00,2633,1,13,3982124.87935259,,,2022-02-03 16:44:00
+Mitsui & Co Ltd,4295880574,4298458436,Hin Leong Trading (Pte) Ltd,Private,Customer,Singapore,Business Support Services,0.31334528,2019-12-03 00:00:00,793,4,2,3982124.87935259,,,2022-02-03 18:32:00
+Airbus SE,4295884955,5000033354,GE Aviation Systems Ltd,Private,Supplier,United Kingdom,Aerospace & Defense,0.291106,2017-11-24 00:00:00,1532,2,2,541151418.059968,,CCC-,2022-02-03 18:36:00
+Boeing Co,4295903076,5000033354,GE Aviation Systems Ltd,Private,Supplier,United Kingdom,Aerospace & Defense,0.99910712020215,2018-02-05 00:00:00,1459,2,15,541151418.059968,,CCC-,2022-02-03 12:01:00
+Emirates Airline,4296833903,5000033354,GE Aviation Systems Ltd,Private,Customer,United Kingdom,Aerospace & Defense,0.574047776448,2015-11-09 00:00:00,2278,1,3,541151418.059968,,CCC-,2022-02-03 19:26:00
+Emirates Airline,4296833903,5000033354,GE Aviation Systems Ltd,Private,Supplier,United Kingdom,Aerospace & Defense,0.28890176,2017-07-10 00:00:00,1669,1,2,541151418.059968,,CCC-,2022-02-03 19:26:00
+Saab AB,4295890182,5000100407,L3harris Technologies Inc,Public,Supplier,United States of America,Aerospace & Defense,0.31855912,2015-02-24 00:00:00,2536,1,2,17814000000.0,55.0,BB,2022-02-03 18:43:00
+Boeing Co,4295903076,5000100407,L3harris Technologies Inc,Public,Supplier,United States of America,Aerospace & Defense,0.999839564343487,2019-05-06 00:00:00,1004,3,18,17814000000.0,55.0,BB,2022-02-03 12:01:00
