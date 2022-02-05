@@ -5,6 +5,7 @@ import os
 import sys
 import re
 import time
+import warnings
 import numpy as np
 import pandas as pd
 
@@ -282,10 +283,10 @@ def get_all_suppliers(data_dir, page_info, parent_ticker, select=None, max_depth
     return fetch_id, pf
 
 
-def find_image_on_page(image_prefix, print_statement=""):
+def find_image_on_page(image_prefix, print_statement="", image_confidence=0.8):
     images = [i for i in os.listdir(get_image_path()) if re.search(f"^{image_prefix}", i)]
     for im in images:
-        loc = pyautogui.locateOnScreen(get_image_path(im))
+        loc = pyautogui.locateOnScreen(get_image_path(im), confidence=image_confidence)
         if loc is not None:
             print(print_statement)
             print(f"using image: {im}")
@@ -534,10 +535,10 @@ if __name__ == "__main__":
     max_fetch = 40
 
     # maximum number of exceptions to allow
-    max_errors = 15
+    max_errors = 10
 
     # max dept in supply chain
-    max_depth = 4
+    max_depth = 6
 
     # load a json containing a path to firefox 'profile'
     # REMOVE: this if not needed
@@ -557,6 +558,8 @@ if __name__ == "__main__":
         fmod = json.load(f)
 
     fmod = fmod["fetch_modulus"]
+    # HACK: REMOVE THIS! this is only for testing - if fmod is None will get all
+    fmod = None
 
     page_info = "VCHAINS"
 
@@ -706,6 +709,7 @@ if __name__ == "__main__":
 
         for tick_id, ticker in enumerate(fetch_id):
 
+            print(f"fetch_count: {fetch_count} of {max_fetch}")
             # --
             # checks on iteration
             # --
@@ -748,7 +752,8 @@ if __name__ == "__main__":
             new_url = browser.current_url
 
             if old_url == new_url:
-                print("URL did not change!")
+                # print("URL did not change!")
+                warnings.warn("URL did not change!")
                 # except_count += 1
                 # print("will skip this one")
                 # continue
@@ -801,16 +806,20 @@ if __name__ == "__main__":
             # wait to load - should be checking page
             # TODO: should be checking if page has loaded
 
+            # TODO: remove this
             # download excel images
-            excel_button = [i for i in os.listdir(get_image_path()) if re.search("^download", i)]
-            for eb in excel_button:
-                button_loc = pyautogui.locateOnScreen(get_image_path(eb))
-                if button_loc is not None:
-                    print("found download button")
-                    break
+            # excel_button = [i for i in os.listdir(get_image_path()) if re.search("^download", i)]
+            # for eb in excel_button:
+            #     button_loc = pyautogui.locateOnScreen(get_image_path(eb))
+            #     if button_loc is not None:
+            #         print("found download button")
+            #         break
+            button_loc = find_image_on_page(image_prefix="download_excel",
+                                            print_statement="found download excel button")
 
             if button_loc is None:
-                print("could not find excel download button! skipping")
+                # print("could not find excel download button! skipping")
+                warnings.warn("could not find excel download button! skipping")
                 # TODO: consider including as 'bad' ticker - or perhaps use different category
                 # bad_ticker = prev_fetched.loc[prev_fetched["Identifier"] == ticker, :]
                 # write_bad_ticker_no_result_to_file(bad_ticker, data_dir, suffix=fmod)
@@ -823,6 +832,10 @@ if __name__ == "__main__":
             print("clicking download button")
             pyautogui.click(button_point)
 
+            # click twice to be sure? or click again if file did not download
+            # ran_sleep(0.1)
+            # pyautogui.click(button_point)
+
             # HACK: sleep to allow for download
             # - should be more careful checking -  see if there are an any 'part' files
             # - or keep checking until there is only one new file
@@ -834,6 +847,7 @@ if __name__ == "__main__":
             # ---
 
             # TODO: want to avoid having .part files - should only check for xlsx in both file_lists
+            # TODO: wrap this up into a function - so can try clicking button again if not initially found
             check = True
             check_count = 0
             while check:
@@ -851,7 +865,8 @@ if __name__ == "__main__":
                     check = False
 
             if not isinstance(new_file, str):
-                print("issue finding new file: didn't get saved?")
+                warnings.warn("issue finding new file: didn't get saved? skipping")
+                except_count += 1
                 continue
 
             # rename file
