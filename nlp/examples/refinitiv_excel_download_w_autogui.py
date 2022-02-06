@@ -878,3 +878,5 @@ if __name__ == "__main__":
 
             fetch_count += 1
     print("FIN!")
+
+    browser.close()
