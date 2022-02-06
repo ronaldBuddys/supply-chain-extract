@@ -744,8 +744,6 @@ if __name__ == "__main__":
                     except_count += 1
                     continue
 
-
-
             print("quick snooze")
             ran_sleep(0.9 * base_sleep)
 
@@ -806,14 +804,6 @@ if __name__ == "__main__":
             # wait to load - should be checking page
             # TODO: should be checking if page has loaded
 
-            # TODO: remove this
-            # download excel images
-            # excel_button = [i for i in os.listdir(get_image_path()) if re.search("^download", i)]
-            # for eb in excel_button:
-            #     button_loc = pyautogui.locateOnScreen(get_image_path(eb))
-            #     if button_loc is not None:
-            #         print("found download button")
-            #         break
             button_loc = find_image_on_page(image_prefix="download_excel",
                                             print_statement="found download excel button")
 

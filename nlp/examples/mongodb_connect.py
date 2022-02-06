@@ -1,26 +1,10 @@
-# connect to mongodb atlas (remote database)
-from pymongo import MongoClient
 import json
-
-
-def get_database(username, password, clustername):
-    # source: https://www.mongodb.com/languages/python
-
-    # Provide the mongodb atlas url to connect python to mongodb using pymongo
-    # TODO: review the particulars of connection string to understand impact - i.e. databasename was removed
-    CONNECTION_STRING = f"mongodb+srv://{username}:{password}@{clustername}.mongodb.net/?retryWrites=true&w=majority"
-
-    # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
-
-    client = MongoClient(CONNECTION_STRING)
-
-    # Create the database for our example (we will use the same database throughout the tutorial
-    return client
-
+from nlp.utils import get_database
+from nlp import get_configs_path
 
 if __name__ == "__main__":
 
-    from nlp import get_configs_path
+    # get credentials
     with open(get_configs_path("mongo.json"), "r+") as f:
         mdb_cred = json.load(f)
 
