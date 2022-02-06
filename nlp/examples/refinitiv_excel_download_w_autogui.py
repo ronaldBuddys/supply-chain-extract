@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 import pyautogui
+import pymongo
 
 import selenium
 from selenium.webdriver.common.keys import Keys
@@ -26,7 +27,7 @@ except NameError:
 
 from nlp.browser import start_browser
 from nlp import get_configs_path, get_data_path, get_image_path
-
+from nlp.utils import get_database
 
 
 def ran_sleep(low=1, upper=None, scale=None):
@@ -185,27 +186,41 @@ def get_previously_fetch_and_select_subset(data_dir, page_info, select=None, see
     return fetch_id, prev_fetched
 
 
-def get_all_suppliers(data_dir, page_info, parent_ticker, select=None, max_depth=2):
+def get_all_suppliers(page_info, parent_ticker, client=None, data_dir=None, select=None, max_depth=2):
 
     print("getting ALL previously fetched data")
     # previously downloaded files
     # - get just the ticker name
-    fetched_files = [i for i in os.listdir(data_dir) if re.search(f"_{page_info}.xlsx$", i)]
-    # fetched_tickers = [re.sub(f"_{page_info}.xlsx$", "", i) for i in fetched_files]
+    if client is not None:
+        print("loading previously fetched using mongo db - 'refinitiv'")
+        prev_fetched = pd.DataFrame(list(client['refinitiv'][page_info].find(filter={})))
+        try:
+            prev_fetched.drop("_id", axis=1, inplace=True)
+        # will get key error there are no document
+        except KeyError:
+            prev_fetched = pd.DataFrame(columns=['Parent Name', 'Parent Id', 'Identifier', 'Company Name', 'Type',
+                                                 'Relationship', 'Country/Region', 'Industry', 'Confidence Score (%)',
+                                                 'Last Update Date', 'Days Since Last Update', 'Freshness',
+                                                 'Snippet Count', 'Revenue (USD)', 'EQ Score', 'Implied Rating',
+                                                 'fetch_time'])
 
-    # read in previously fetched - to determine what to fetch next
-    prev_fetched = [read_fetched_file(os.path.join(data_dir, i)) for i in fetched_files]
+    elif data_dir is not None:
+        print(f"loading previously fetched from data_dir:\n{data_dir}")
+        fetched_files = [i for i in os.listdir(data_dir) if re.search(f"_{page_info}.xlsx$", i)]
+        # read in previously fetched - to determine what to fetch next
+        prev_fetched = [read_fetched_file(os.path.join(data_dir, i)) for i in fetched_files]
+        try:
+            prev_fetched = pd.concat(prev_fetched)
+        except Exception as e:
+            prev_fetched = pd.DataFrame(columns=['Parent Name', 'Parent Id', 'Identifier', 'Company Name', 'Type',
+                                                 'Relationship', 'Country/Region', 'Industry', 'Confidence Score (%)',
+                                                 'Last Update Date', 'Days Since Last Update', 'Freshness',
+                                                 'Snippet Count', 'Revenue (USD)', 'EQ Score', 'Implied Rating',
+                                                 'fetch_time'])
+    else:
+        print("both 'client' and 'data_dir' are None, provide one or other, returning None")
+        return None
 
-    # TODO: handle if None were previously fetched
-    # TODO: determine if fetched data will always have the same columns! - ohh the inflexibility of tabular data
-    try:
-        prev_fetched = pd.concat(prev_fetched)
-    except Exception as e:
-        prev_fetched = pd.DataFrame(columns=['Parent Name', 'Parent Id', 'Identifier', 'Company Name', 'Type',
-                                             'Relationship', 'Country/Region', 'Industry', 'Confidence Score (%)',
-                                             'Last Update Date', 'Days Since Last Update', 'Freshness',
-                                             'Snippet Count', 'Revenue (USD)', 'EQ Score', 'Implied Rating',
-                                             'fetch_time'])
 
     # get all previously fetched
     # all_parent_id = np.unique(prev_fetched["Parent Id"].values)
@@ -339,7 +354,12 @@ def search_page_info(browser, ticker, page_info, sleep=2, use_gui_api=False):
     #     time.sleep(np.random.uniform(*type_sleep))
     #     tb_input.send_keys(ts)
     ran_sleep(sleep)
-    tb_input.send_keys(Keys.RETURN)
+
+    if use_gui_api:
+        print("pressing enter")
+        pyautogui.press('enter')
+    else:
+        tb_input.send_keys(Keys.RETURN)
     ran_sleep(1.5*sleep)
     print("search_page_info: COMPLETE")
 
@@ -546,21 +566,24 @@ if __name__ == "__main__":
     with open(get_configs_path("profiles.json"), "r") as f:
         profiles = json.load(f)
 
-    # fetch modulus
-    # - determine which company numbers to fetch
-    fetch_mod_file = get_configs_path("fetch_mod.json")
+    # database connection
+    # get credentials
+    try:
+        with open(get_configs_path("mongo.json"), "r+") as f:
+            mdb_cred = json.load(f)
 
-    assert os.path.exists(fetch_mod_file), \
-        f"file:\n{fetch_mod_file}\ndoes not exist, it should and be in format of:\n{json.dumps({'fetch_modulus': '#'})}\n" \
-        f"with '#' being on of [0,1,2,3]"
+        # get mongodb client - for connections
+        client = get_database(username=mdb_cred["username"],
+                              password=mdb_cred["password"],
+                              clustername=mdb_cred["cluster_name"])
+        # check session info - just to check connection
+        client.server_info()
+        print("connected to mongodb")
+    except pymongo.errors.OperationFailure:
+        warnings.warn("issue connecting to database, will only write results locally")
+        client = None
 
-    with open(fetch_mod_file, "r") as f:
-        fmod = json.load(f)
-
-    fmod = fmod["fetch_modulus"]
-    # HACK: REMOVE THIS! this is only for testing - if fmod is None will get all
-    fmod = None
-
+    # page info - as per refinitiv - also used to specify mongodb collection in 'refinitiv' database
     page_info = "VCHAINS"
 
     # need to determine which iframe to select
@@ -606,7 +629,8 @@ if __name__ == "__main__":
     # fire up browser
     # ---
 
-    # provide the
+    # provide the firefox profile
+    # TODO: determine if this can be avoid, as it makes it more simplistic to not have to use firefox profile
     browser = start_browser(profile_loc=profiles["firefox"], out_dir=data_dir)
     # no profile - easier to identify as a bot?
     # browser = start_browser(profile_loc=None, out_dir=data_dir)
@@ -620,7 +644,10 @@ if __name__ == "__main__":
     print("sleep while login page loads, if already logged in should eventually go to workspace")
     ran_sleep(3*base_sleep)
 
-    # TODO: handle login
+    # ----
+    # login
+    # ----
+
     # NOTE: found that the below if statement could be true, but then previously
     # used credential would work and
     # - check if login is in name?
@@ -659,9 +686,9 @@ if __name__ == "__main__":
 
     assert bool(re.search(base_url, browser.current_url)), f"current_url does not contain: {base_url}"
 
-    # ---
+    # ---------------
     # get downloaded file information
-    # ---
+    # ---------------
 
     # keep track of exceptions / errors
     except_count = 0
@@ -679,25 +706,30 @@ if __name__ == "__main__":
         #                                                                 seed_tickers=seed_ticker,
         #                                                                 industry_select=industry_select)
 
-        fetch_id, prev_fetched = get_all_suppliers(data_dir, page_info,
+        fetch_id, prev_fetched = get_all_suppliers(data_dir=data_dir,
+                                                   page_info=page_info,
+                                                   client=client,
                                                    parent_ticker=seed_ticker,
                                                    select=select,
                                                    max_depth=max_depth)
 
-        # read all the bad_ticker data
-        # TODO: should this read all bad ticker data ? - currently does
-        bad_tickers = [pd.read_csv(os.path.join(data_dir, i))
-                       for i in os.listdir(data_dir)
-                       if re.search("^bad_ticker", i)]
-        bad_tickers = pd.concat(bad_tickers)
-        bad_ids = bad_tickers["Identifier"].values.astype('str')
+        if client is None:
 
+            # read all the bad_ticker data
+            # TODO: should this read all bad ticker data ? - currently does
+            bad_tickers = [pd.read_csv(os.path.join(data_dir, i))
+                           for i in os.listdir(data_dir)
+                           if re.search("^bad_ticker", i)]
+            bad_tickers = pd.concat(bad_tickers)
+
+        else:
+            # TODO: make a util function to get all documents into single dataframe
+            bad_tickers = pd.DataFrame(list(client['refinitiv'][f"{page_info}_bad_ticker"].find({})))
+            bad_tickers.drop("_id", axis=1, inplace=True)
+
+        bad_ids = bad_tickers["Identifier"].values.astype('str')
         print("dropping ids that were previously identified as 'bad' - had issues when searching for them")
         fetch_id = [i for i in fetch_id if i not in bad_ids]
-
-        if fmod is not None:
-            print(f"will only select company ids that have ID%4 == {fmod}")
-            fetch_id = [i for i in fetch_id if int(i) % 4 == fmod]
 
         assert len(fetch_id) > 0, "there are no company ids to fetch, change select criteria?"
 
@@ -710,6 +742,7 @@ if __name__ == "__main__":
         for tick_id, ticker in enumerate(fetch_id):
 
             print(f"fetch_count: {fetch_count} of {max_fetch}")
+
             # --
             # checks on iteration
             # --
@@ -727,6 +760,13 @@ if __name__ == "__main__":
             if ticker in prev_fetched["Identifier"].values:
                 print(f"fetching ticker: {ticker}, which came up previously:")
                 print(prev_fetched.loc[ prev_fetched["Identifier"] == ticker, :])
+
+            # just encase someone else has already fetched this ticker
+            if client is not None:
+                found = client['refinitiv'][f"{page_info}"].find_one(filter={"Parent Id": int(ticker)})
+                if found is not None:
+                    print("looks like: {ticker} as already been found, skipping")
+                    continue
 
             # ---
             # search page information for ticker
@@ -755,10 +795,11 @@ if __name__ == "__main__":
                 # except_count += 1
                 # print("will skip this one")
                 # continue
-                print("reload app")
+                print("reload app and continue")
                 browser.get(base_url)
                 ran_sleep(2.5 * base_sleep)
                 except_count += 1
+                continue
 
             # ---
             # check page for no_results
@@ -786,7 +827,14 @@ if __name__ == "__main__":
 
                 # effectively append current bad ticker data to existing file
                 # TODO: when using database just use append
-                write_bad_ticker_no_result_to_file(bad_ticker, data_dir, suffix=fmod)
+                if client is None:
+                    write_bad_ticker_no_result_to_file(bad_ticker, data_dir, suffix=None)
+                else:
+                    bt = {'Company Name': bad_ticker["Company Name"].values[0],
+                          'Identifier': int(ticker),
+                          'reason': "no results"}
+                    client['refinitiv'][f"{page_info}_bad_ticker"].insert_one(bt)
+
                 print("skipping")
                 continue
 
@@ -867,6 +915,23 @@ if __name__ == "__main__":
                       dst=dst_file)
 
             fetch_count += 1
+
+            # write to database - if client provided
+            if client is not None:
+                df = read_fetched_file(dst_file)
+                pid = df['Parent Id'].unique()
+                pid = int(pid[0])
+                res = client["refinitiv"][page_info].find_one({'Parent Id': pid})
+                # add company if not found before
+                if res is None:
+                    print(f"adding to database 'refinitiv': collection: {page_info} documents for: {pid}")
+                    print(f"company name: {df['Parent Name'].unique()[0]}")
+                    client["refinitiv"][page_info].insert_many(df.to_dict('records'))
+                else:
+                    # TODO: in general would want to all for updating value in database - so checking previous fetch_time
+                    warnings.warn(f"company with id: {pid} already has entries in database")
     print("FIN!")
 
     browser.close()
+    client.close()
+
