@@ -1,4 +1,17 @@
 import json
+import os
+import sys
+try:
+    # python package (nlp) location - two levels up from this file
+    src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+    # add package to sys.path if it's not already there
+    if src_path not in sys.path:
+        sys.path.extend([src_path])
+except NameError:
+    print('issue with adding to path, probably due to __file__ not being defined')
+    src_path = None
+
+
 from nlp.utils import get_database
 from nlp import get_configs_path
 
