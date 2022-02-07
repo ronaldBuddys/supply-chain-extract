@@ -315,6 +315,7 @@ def search_page_info(browser, ticker, page_info, sleep=2, use_gui_api=False):
     # HARDCODE: iframe order on home page
     browser.switch_to.default_content()
     print("switching to relevant iframes")
+
     browser.switch_to.frame("AppFrame")
     browser.switch_to.frame("internal")
     browser.switch_to.frame("AppFrame")
@@ -366,27 +367,90 @@ def search_page_info(browser, ticker, page_info, sleep=2, use_gui_api=False):
     return 1
 
 
-def excel_download_button(browser, page_info):
-    if page_info == "TREE":
-        excel_btn = browser.find_element_by_tag_name("app-excel-export")
-    # excel_btn.click()
-    elif page_info == "VCHAINS":
-        print("downloading excel file")
-        # find div with "excel" in class name
-        # divs = [d for d in browser.find_elements_by_tag_name("div") if re.search("excel", d.get_attribute("class"))]
-        # HARDCODE: expect only one!
-        # btn = [b for b in divs[0].find_elements_by_tag_name("button") if b.get_attribute("class") == "icon"]
-        # [ for i in browser.find_elements_by_id("exportExcelButtonContainer") if i.get_attribute]
-        span_btn = browser.find_element_by_id("exportExcelButtonContainer")
-        # getting error: button is not displayed....
-        span_btn.is_displayed()
-        btn = [b for b in span_btn.find_elements_by_tag_name("button") if b.get_attribute("class") == "icon"]
+def excel_download_button(browser, page_info, page_long_name=None, use_gui_api=False):
+    """click the download excel button
+    return True if no issue, False otherwise
+    """
+    # return True if no issue, False otherwise
 
-        # span_btn.click()
-        # btn[0].click()
-        excel_btn = btn[0]
+    if use_gui_api:
+        button_loc = find_image_on_page(image_prefix="download_excel",
+                                        print_statement="found download excel button")
 
-    return excel_btn
+        if button_loc is None:
+            # print("could not find excel download button! skipping")
+            warnings.warn("could not find excel download button! skipping")
+            # TODO: consider including as 'bad' ticker - or perhaps use different category
+            # bad_ticker = prev_fetched.loc[prev_fetched["Identifier"] == ticker, :]
+            return False
+
+        # get the center of button
+        try:
+            button_point = pyautogui.center(button_loc)
+            # and click it
+            print("clicking download button")
+            pyautogui.click(button_point)
+            # click twice to be sure? or click again if file did not download
+            # ran_sleep(0.1)
+            # pyautogui.click(button_point)
+
+        # TODO: change this to a proper exception
+        except Exception as e:
+            print(e)
+            print("issue clicking excel button?")
+            return False
+
+    # otherwise try to use javascript / selenium
+    else:
+
+        if page_info == "TREE":
+            # swtich to iframe
+            switched_to_iframe = switch_to_relevant_iframe(browser=browser,
+                                                           page_info=page_info,
+                                                           page_long_name=page_long_name)
+            if not switched_to_iframe:
+                return False
+
+            excel_btn = browser.find_element_by_tag_name("app-excel-export")
+        # excel_btn.click()
+        elif page_info == "VCHAINS":
+            # switch to iframe
+            switched_to_iframe = switch_to_relevant_iframe(browser=browser,
+                                                           page_info=page_info,
+                                                           page_long_name=page_long_name)
+
+            if not switched_to_iframe:
+                return False
+
+            print("downloading excel file")
+            # find div with "excel" in class name
+            # divs = [d for d in browser.find_elements_by_tag_name("div") if re.search("excel", d.get_attribute("class"))]
+            # HARDCODE: expect only one!
+            # btn = [b for b in divs[0].find_elements_by_tag_name("button") if b.get_attribute("class") == "icon"]
+            # [ for i in browser.find_elements_by_id("exportExcelButtonContainer") if i.get_attribute]
+            span_btn = browser.find_element_by_id("exportExcelButtonContainer")
+            # getting error: button is not displayed....
+            span_btn.is_displayed()
+            btn = [b for b in span_btn.find_elements_by_tag_name("button") if b.get_attribute("class") == "icon"]
+            excel_btn = btn[0]
+
+        # click the button
+        try:
+            excel_btn.click()
+        # button can may not be inter-actable
+        # - even though it does appear in view, and can be clicked manually
+        except selenium.common.exceptions.ElementNotInteractableException as e:
+            print(e)
+            print("ElementNotInteractableException: issue clicking download button, moving on")
+
+            return False
+        except selenium.common.exceptions.NoSuchElementException as e:
+            print(e)
+            print("NoSuchElementException: issue clicking download button, moving on")
+            # TODO: keep track of how often this occurs? break if too many
+            return False
+
+    return True
 
 
 def switch_to_relevant_iframe(browser, page_info, page_long_name):
@@ -405,7 +469,14 @@ def switch_to_relevant_iframe(browser, page_info, page_long_name):
         assert len(iframe) > 0, "expected more than one iframe with 'Corp' in 'src' attribute"
     except AssertionError as e:
         print(e)
-        return -1
+        print("trying 'privatecompany'")
+        iframe = [i
+                  for i in browser.find_elements_by_tag_name("iframe")
+                  if re.search("privatecompany", re.sub(base_url, "", i.get_attribute("src")))]
+        try:
+            assert len(iframe) > 0, "expected more than one iframe with 'Corp' in 'src' attribute"
+        except AssertionError as e:
+            return False
         # except_count += 1
         # continue
 
@@ -425,7 +496,7 @@ def switch_to_relevant_iframe(browser, page_info, page_long_name):
     # AppFrame - again!!
     browser.switch_to.frame("AppFrame")
 
-    return 0
+    return True
 
 
 def write_bad_ticker_no_result_to_file(bad_ticker, data_dir, suffix=None):
@@ -558,7 +629,7 @@ if __name__ == "__main__":
     max_errors = 10
 
     # max dept in supply chain
-    max_depth = 6
+    max_depth = 7
 
     # load a json containing a path to firefox 'profile'
     # REMOVE: this if not needed
@@ -755,6 +826,7 @@ if __name__ == "__main__":
                 print("too many exception occurred, forcing stop")
                 break
 
+
             print("-"*10)
             # show why fetching this ticker?
             if ticker in prev_fetched["Identifier"].values:
@@ -851,28 +923,23 @@ if __name__ == "__main__":
 
             # wait to load - should be checking page
             # TODO: should be checking if page has loaded
+            clicked_excel_download = excel_download_button(browser, page_info,
+                                                           page_long_name=page_long_name,
+                                                           use_gui_api=True)
 
-            button_loc = find_image_on_page(image_prefix="download_excel",
-                                            print_statement="found download excel button")
+            # if issue with using autogui, try javascript
+            if not clicked_excel_download:
+                print("was not able to click excel download button with gui, trying javascript")
+                clicked_excel_download = excel_download_button(browser, page_info,
+                                                               page_long_name=page_long_name,
+                                                               use_gui_api=False)
 
-            if button_loc is None:
-                # print("could not find excel download button! skipping")
+            if not clicked_excel_download:
                 warnings.warn("could not find excel download button! skipping")
-                # TODO: consider including as 'bad' ticker - or perhaps use different category
-                # bad_ticker = prev_fetched.loc[prev_fetched["Identifier"] == ticker, :]
-                # write_bad_ticker_no_result_to_file(bad_ticker, data_dir, suffix=fmod)
                 except_count += 1
                 continue
 
-            # get the center of button
-            button_point = pyautogui.center(button_loc)
-            # and click it
-            print("clicking download button")
-            pyautogui.click(button_point)
 
-            # click twice to be sure? or click again if file did not download
-            # ran_sleep(0.1)
-            # pyautogui.click(button_point)
 
             # HACK: sleep to allow for download
             # - should be more careful checking -  see if there are an any 'part' files
