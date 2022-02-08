@@ -72,7 +72,6 @@ if __name__ == "__main__":
 
     prev_fetched = pd.DataFrame(list(client['refinitiv']["VCHAINS"].find(filter={})))
     
-    #dir = "/Users/timmaecker/Google Drive/Career and Skills/Learning/MSc Machine Learning - UCL/2 COMP0087 Statistical Natural Language Processing/Coursework/nlpproject/nlp/data"
     filename = src_path + "/nlp/data/VCHain_DB_Data_As_of_" + time.strftime("%Y_%m_%d_%H_%M")+".xlsx"
     print("Saving {}".format(filename))
     prev_fetched.to_excel(filename)
