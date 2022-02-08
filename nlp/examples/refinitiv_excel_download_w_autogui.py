@@ -27,7 +27,8 @@ except NameError:
 
 from nlp.browser import start_browser
 from nlp import get_configs_path, get_data_path, get_image_path
-from nlp.utils import get_database
+from nlp.utils import get_database, search_company
+
 
 
 def ran_sleep(low=1, upper=None, scale=None):
@@ -619,6 +620,9 @@ if __name__ == "__main__":
     # ticker = "AAPL"
     # GM:
     seed_ticker = "4298546138"
+
+
+
     # to find a 'permid' go to company page -> Overview (in ribbon) -> Codes and Schemes ->
     # under CODES: Company PERMID
 
@@ -686,6 +690,21 @@ if __name__ == "__main__":
     #     'Tires & Rubber Products',
     #     'Semiconductor Equipment & Testing']
     # industry_select = None
+
+    # ----
+    # seed_ticker
+    # ----
+
+    # if seed_ticker is not a digit then search for it
+    if not seed_ticker.isdigit():
+        # NOTE: requires api_key - will look in configs/keys.json, will error if does not exist
+        ticker_info = search_company(seed_ticker)
+        assert ticker_info is not None, "search_company did not return a result - check query"
+        print("company info")
+        print(json.dumps(ticker_info, indent=4))
+
+        seed_ticker = ticker_info["id"]
+        print(f"using seed_ticker={seed_ticker}")
 
     # --
     # location to download files to
