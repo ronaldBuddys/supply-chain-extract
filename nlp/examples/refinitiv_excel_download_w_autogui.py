@@ -299,7 +299,7 @@ def get_all_suppliers(page_info, parent_ticker, client=None, data_dir=None, sele
     return fetch_id, pf
 
 
-def find_image_on_page(image_prefix, print_statement="", image_confidence=0.8):
+def find_image_on_page(image_prefix, print_statement="", image_confidence=0.6 ):
     images = [i for i in os.listdir(get_image_path()) if re.search(f"^{image_prefix}", i)]
     for im in images:
         loc = pyautogui.locateOnScreen(get_image_path(im), confidence=image_confidence)
