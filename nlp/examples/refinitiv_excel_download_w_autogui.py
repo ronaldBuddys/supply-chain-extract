@@ -586,6 +586,7 @@ def refin_login(uname,pwd ):
         # time.sleep(4*base_sleep)
 
     except Exception as e:
+        print("signing out of previous gave this error")
         print(e)
 
 
@@ -620,8 +621,7 @@ if __name__ == "__main__":
     # ticker = "AAPL"
     # GM:
     seed_ticker = "4298546138"
-
-
+    # seed_ticker = "FORD"
 
     # to find a 'permid' go to company page -> Overview (in ribbon) -> Codes and Schemes ->
     # under CODES: Company PERMID
@@ -666,6 +666,8 @@ if __name__ == "__main__":
         "VCHAINS": "ValueChains",
         "TREE": "CompanyTreeStructure"
     }
+
+    page_short_name = {"VCHAINS": "VC"}
 
     # base url for workspace - use to deal with src
     # - this is the page should check landed on after login
@@ -866,10 +868,15 @@ if __name__ == "__main__":
             old_url = browser.current_url
             # move mouse to some arbitrary position - to avoid being over magnifying glass
             pyautogui.moveTo(100, 200)
-            found_search = search_page_info(browser, ticker, page_info, use_gui_api=True)
+
+            found_search = search_page_info(browser, ticker,
+                                            page_info=page_short_name[page_info],
+                                            use_gui_api=True)
             if found_search < 0:
                 print("issue finding search bar, will try using javascript")
-                found_search = search_page_info(browser, ticker, page_info, use_gui_api=False)
+                found_search = search_page_info(browser, ticker,
+                                                page_info=page_short_name[page_info],
+                                                use_gui_api=False)
                 if found_search < 0:
                     print("issue finding search bar using gui api")
                     except_count += 1
@@ -957,7 +964,6 @@ if __name__ == "__main__":
                 warnings.warn("could not find excel download button! skipping")
                 except_count += 1
                 continue
-
 
 
             # HACK: sleep to allow for download
