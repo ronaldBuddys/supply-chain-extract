@@ -56,7 +56,7 @@ if __name__ == "__main__":
     base_url = "https://api.nytimes.com/"
     article_search_url = f"{base_url}svc/search/v2/articlesearch.json?"
     query = "q=election"
-    query = 'fq=news_desk:("Sports") AND glocations:("NEW YORK CITY")'
+    # query = 'fq=news_desk:("Sports") AND glocations:("NEW YORK CITY")'
 
     search_url = f'{article_search_url}{query}&api-key={api_key}'
 
