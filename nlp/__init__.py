@@ -19,3 +19,7 @@ def get_data_path(*sub_dir):
 
 def get_image_path(*sub_dir):
     return os.path.join(get_path('images'), *sub_dir)
+
+
+def get_plots_path(*sub_dir):
+    return os.path.join(get_path('plots'), *sub_dir)

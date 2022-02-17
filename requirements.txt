@@ -10,5 +10,6 @@ pillow==9.0.1
 opencv-python==4.5.5.62
 pymongo==4.0.1
 dnspython==2.2.0
+matplotlib==3.5.1
 
 

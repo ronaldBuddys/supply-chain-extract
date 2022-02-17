@@ -1,3 +1,6 @@
+# large dataset
+nlp/data/cc_download_articles/*
+
 # ignore contents of configs
 nlp/configs/*.json
 
