@@ -198,7 +198,7 @@ if __name__ == "__main__":
     update_dates = vc["Last Update Date"].unique()
 
     # remove the previously fetched dates
-    fetched_dates = list(client["new_articles"]["fetched_dates"].find())
+    fetched_dates = list(client["news_articles"]["fetched_dates"].find())
     fetched_dates = [f["date"] for f in fetched_dates]
     fetched_dates = np.array(fetched_dates).astype("datetime64[ns]")
 
@@ -229,7 +229,7 @@ if __name__ == "__main__":
         # --
         # TODO: include the names/websites which were searched/filtered for?
         doc = {"date": date_str, "started": True, "finished": False}
-        client["new_articles"]["fetched_dates"].update_one(filter={"date": date_str},
+        client["news_articles"]["fetched_dates"].update_one(filter={"date": date_str},
                                                            update={"$set": doc},
                                                            upsert=True)
 
@@ -292,23 +292,28 @@ if __name__ == "__main__":
 
         # take from newsplease/examples
         # __setup__()
-        commoncrawl_crawler.crawl_from_commoncrawl(on_valid_article_extracted,
-                                                   callback_on_warc_completed=callback_on_warc_completed,
-                                                   valid_hosts=my_filter_valid_hosts,
-                                                   start_date=my_filter_start_date,
-                                                   end_date=my_filter_end_date,
-                                                   warc_files_start_date=my_warc_files_start_date,
-                                                   warc_files_end_date=my_warc_files_end_date,
-                                                   strict_date=my_filter_strict_date,
-                                                   reuse_previously_downloaded_files=my_reuse_previously_downloaded_files,
-                                                   local_download_dir_warc=my_local_download_dir_warc,
-                                                   continue_after_error=my_continue_after_error,
-                                                   show_download_progress=my_show_download_progress,
-                                                   number_of_extraction_processes=my_number_of_extraction_processes,
-                                                   log_level=my_log_level,
-                                                   delete_warc_after_extraction=my_delete_warc_after_extraction,
-                                                   continue_process=my_continue_process,
-                                                   fetch_images=my_fetch_images)
+        try:
+            commoncrawl_crawler.crawl_from_commoncrawl(on_valid_article_extracted,
+                                                       callback_on_warc_completed=callback_on_warc_completed,
+                                                       valid_hosts=my_filter_valid_hosts,
+                                                       start_date=my_filter_start_date,
+                                                       end_date=my_filter_end_date,
+                                                       warc_files_start_date=my_warc_files_start_date,
+                                                       warc_files_end_date=my_warc_files_end_date,
+                                                       strict_date=my_filter_strict_date,
+                                                       reuse_previously_downloaded_files=my_reuse_previously_downloaded_files,
+                                                       local_download_dir_warc=my_local_download_dir_warc,
+                                                       continue_after_error=my_continue_after_error,
+                                                       show_download_progress=my_show_download_progress,
+                                                       number_of_extraction_processes=my_number_of_extraction_processes,
+                                                       log_level=my_log_level,
+                                                       delete_warc_after_extraction=my_delete_warc_after_extraction,
+                                                       continue_process=my_continue_process,
+                                                       fetch_images=my_fetch_images)
+        except FileNotFoundError:
+            print("bad date?")
+            print(start_date)
+            doc["error_message"] = "FileNotFoundError"
 
         # -----
         # update doc in database indicating finished searching for that date
@@ -316,12 +321,12 @@ if __name__ == "__main__":
 
         # TODO: add the in
         doc["finished"] = True
-        client["new_articles"]["fetched_dates"].update_one(filter={"date": date_str},
+        client["news_articles"]["fetched_dates"].update_one(filter={"date": date_str},
                                                            update={"$set": doc},
                                                            upsert=True)
 
         # remove the previously fetched dates
-        fetched_dates = list(client["new_articles"]["fetched_dates"].find())
+        fetched_dates = list(client["news_articles"]["fetched_dates"].find())
         fetched_dates = [f["date"] for f in fetched_dates]
         fetched_dates = np.array(fetched_dates).astype("datetime64[ns]")
 
