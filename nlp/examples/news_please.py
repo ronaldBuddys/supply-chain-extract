@@ -14,7 +14,8 @@ import datetime
 
 from bson import ObjectId
 from newsplease.crawler import commoncrawl_crawler as commoncrawl_crawler
-
+from newsplease.crawler.commoncrawl_extractor import CommonCrawlExtractor
+from newsplease.crawler.commoncrawl_crawler import __start_commoncrawl_extractor
 
 try:
     # python package (nlp) location - two levels up from this file
@@ -39,8 +40,7 @@ def __setup__():
     os.makedirs(my_local_download_dir_article, exist_ok=True)
 
 
-def callback_on_warc_completed(warc_path, counter_article_passed, counter_article_discarded,
-                               counter_article_error, counter_article_total, counter_warc_processed):
+def callback_on_warc_completed(*args, **kwargs):
     """
     This function will be invoked for each WARC file that was processed completely. Parameters represent total values,
     i.e., cumulated over all all previously processed WARC files.
@@ -137,10 +137,22 @@ def get_config(sysargv, argpos=1, default="commoncrawl.json", verbose=True):
     return cc_config
 
 
+def get_unfetched_commoncrawl_files(art_db, use_dates=None):
+    ccf = pd.DataFrame(list(art_db["common_crawl_files"].find()))
+    ccf["date"] = pd.to_datetime(ccf["date"])
+
+    # select subset of dates - Last Update Date
+    if use_dates is not None:
+        ccf = ccf.loc[ccf["date"].isin(use_dates)]
+
+    # consider only those files that have not been fetched yet
+    ccf = ccf.loc[~ccf["fetched"]]
+    return ccf
 
 
 if __name__ == "__main__":
 
+    pd.set_option("display.max_columns", 200)
     # ----
     # common crawl config
     # ----
@@ -178,6 +190,7 @@ if __name__ == "__main__":
     client = get_database(username=mdb_cred["username"],
                           password=mdb_cred["password"],
                           clustername=mdb_cred["cluster_name"])
+    art_db = client["news_articles"]
 
     # get all entries from value chain data
     vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
@@ -197,19 +210,29 @@ if __name__ == "__main__":
     # get the update dates
     update_dates = vc["Last Update Date"].unique()
 
-    # remove the previously fetched dates
-    fetched_dates = list(client["news_articles"]["fetched_dates"].find())
-    fetched_dates = [f["date"] for f in fetched_dates]
-    fetched_dates = np.array(fetched_dates).astype("datetime64[ns]")
+    # ----
+    # get commoncrawl files that can be downloaded
+    # ----
 
-    if len(fetched_dates) == 0:
-        print("no dates previously fetched")
+    # get the commoncrawl files that have not been fetched
+    ccf = get_unfetched_commoncrawl_files(art_db, use_dates=update_dates)
+
+    # # remove the previously fetched dates
+    # fetched_dates = list(["fetched_dates"].find())
+    # fetched_dates = [f["date"] for f in fetched_dates]
+    # fetched_dates = np.array(fetched_dates).astype("datetime64[ns]")
+    #
+    # if len(fetched_dates) == 0:
+    #     print("no dates previously fetched")
 
     # remove previously fetched
-    update_dates = update_dates[~np.in1d(update_dates, fetched_dates)]
+    # update_dates = update_dates[~np.in1d(update_dates, fetched_dates)]
 
+    counter = 0
+    max_count = np.inf
     # TODO: this can be tidied up
-    while len(update_dates) > 0:
+    while len(ccf) > 0:
+        counter += 1
 
         # pick a random date - to reduce chances of two people fetching same
         # date at same time
@@ -292,43 +315,99 @@ if __name__ == "__main__":
 
         # take from newsplease/examples
         # __setup__()
+        # try:
+        #     commoncrawl_crawler.crawl_from_commoncrawl(on_valid_article_extracted,
+        #                                                callback_on_warc_completed=callback_on_warc_completed,
+        #                                                valid_hosts=my_filter_valid_hosts,
+        #                                                start_date=my_filter_start_date,
+        #                                                end_date=my_filter_end_date,
+        #                                                warc_files_start_date=my_warc_files_start_date,
+        #                                                warc_files_end_date=my_warc_files_end_date,
+        #                                                strict_date=my_filter_strict_date,
+        #                                                reuse_previously_downloaded_files=my_reuse_previously_downloaded_files,
+        #                                                local_download_dir_warc=my_local_download_dir_warc,
+        #                                                continue_after_error=my_continue_after_error,
+        #                                                show_download_progress=my_show_download_progress,
+        #                                                number_of_extraction_processes=my_number_of_extraction_processes,
+        #                                                log_level=my_log_level,
+        #                                                delete_warc_after_extraction=my_delete_warc_after_extraction,
+        #                                                continue_process=my_continue_process,
+        #                                                fetch_images=my_fetch_images)
+        # except FileNotFoundError:
+        #     print("bad date?")
+        #     print(start_date)
+        #     doc["error_message"] = "FileNotFoundError"
+
+
+        # select a random(?) warc file
+        warc_file = np.random.choice(ccf["name"].values, 1)[0]
+        base_url = 'https://commoncrawl.s3.amazonaws.com/'
+        warc_download_url = base_url + warc_file
+
+        # write to mongo this warc file has* been fetched
+        art_db["common_crawl_files"].update_one(filter={"name": warc_file},
+                                                update={"$set": {"fetched": True}})
+
         try:
-            commoncrawl_crawler.crawl_from_commoncrawl(on_valid_article_extracted,
-                                                       callback_on_warc_completed=callback_on_warc_completed,
-                                                       valid_hosts=my_filter_valid_hosts,
-                                                       start_date=my_filter_start_date,
-                                                       end_date=my_filter_end_date,
-                                                       warc_files_start_date=my_warc_files_start_date,
-                                                       warc_files_end_date=my_warc_files_end_date,
-                                                       strict_date=my_filter_strict_date,
-                                                       reuse_previously_downloaded_files=my_reuse_previously_downloaded_files,
-                                                       local_download_dir_warc=my_local_download_dir_warc,
-                                                       continue_after_error=my_continue_after_error,
-                                                       show_download_progress=my_show_download_progress,
-                                                       number_of_extraction_processes=my_number_of_extraction_processes,
-                                                       log_level=my_log_level,
-                                                       delete_warc_after_extraction=my_delete_warc_after_extraction,
-                                                       continue_process=my_continue_process,
-                                                       fetch_images=my_fetch_images)
-        except FileNotFoundError:
-            print("bad date?")
-            print(start_date)
-            doc["error_message"] = "FileNotFoundError"
+            __log_pathname_fully_extracted_warcs = None
+            extractor_cls=CommonCrawlExtractor
+            # for warc_download_url in warc_download_urls:
+
+            __start_commoncrawl_extractor(warc_download_url,
+                                          callback_on_article_extracted=on_valid_article_extracted,
+                                          callback_on_warc_completed=callback_on_warc_completed,
+                                          valid_hosts=my_filter_valid_hosts,
+                                          start_date=my_filter_start_date,
+                                          end_date=my_filter_end_date,
+                                          strict_date=my_filter_strict_date,
+                                          reuse_previously_downloaded_files=my_reuse_previously_downloaded_files,
+                                          local_download_dir_warc=my_local_download_dir_warc,
+                                          continue_after_error=my_continue_after_error,
+                                          show_download_progress=my_show_download_progress,
+                                          log_level=my_log_level,
+                                          delete_warc_after_extraction=my_delete_warc_after_extraction,
+                                          log_pathname_fully_extracted_warcs=__log_pathname_fully_extracted_warcs,
+                                          extractor_cls=extractor_cls,
+                                          fetch_images=my_fetch_images)
+        except Exception as e:
+            print(f"error occured\n will state current warc_file: {warc_file} fetched=False")
+            print(e)
+
+            # write to mongo this warc file has* been fetched
+            art_db["common_crawl_files"].update_one(filter={"name": warc_file},
+                                                    update={"$set": {"fetched": False}})
+
 
         # -----
         # update doc in database indicating finished searching for that date
         # -----
 
-        # TODO: add the in
-        doc["finished"] = True
-        client["news_articles"]["fetched_dates"].update_one(filter={"date": date_str},
-                                                           update={"$set": doc},
-                                                           upsert=True)
+        # update
+        # art_db["common_crawl_files"].update_one(filter={"_id": doc["_id"]},
+        #                                         update={"$set": {"fetched": True}})
 
-        # remove the previously fetched dates
-        fetched_dates = list(client["news_articles"]["fetched_dates"].find())
-        fetched_dates = [f["date"] for f in fetched_dates]
-        fetched_dates = np.array(fetched_dates).astype("datetime64[ns]")
 
-        # remove previously fetched
-        update_dates = update_dates[~np.in1d(update_dates, fetched_dates)]
+        # # TODO: add the in
+        # doc["finished"] = True
+        # client["news_articles"]["fetched_dates"].update_one(filter={"date": date_str},
+        #                                                    update={"$set": doc},
+        #                                                    upsert=True)
+
+        # # remove the previously fetched dates
+        # fetched_dates = list(client["news_articles"]["fetched_dates"].find())
+        # fetched_dates = [f["date"] for f in fetched_dates]
+        # fetched_dates = np.array(fetched_dates).astype("datetime64[ns]")
+        #
+        # # remove previously fetched
+        # update_dates = update_dates[~np.in1d(update_dates, fetched_dates)]
+
+        # get the commoncrawl files that have not been fetched
+        ccf = get_unfetched_commoncrawl_files(art_db, use_dates=update_dates)
+
+
+        if counter >= max_count:
+            ccf = []
+
+    print("FINSIHED!")
+    client.close()
+
