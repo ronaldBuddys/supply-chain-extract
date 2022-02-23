@@ -12,3 +12,4 @@ pymongo==4.0.1
 dnspython==2.2.0
 matplotlib==3.5.1
 news-please==1.5.21
+spacy==3.2.2
