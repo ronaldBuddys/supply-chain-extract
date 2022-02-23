@@ -163,6 +163,8 @@ if __name__ == "__main__":
     # 'News Corp' -> 'News Corp'
     # NOTE: if it starts with air it needs two words
 
+    all_names = np.unique(np.concatenate([v["names_in_text"] for k, v in articles.items()]))
+
     short_name = pd.DataFrame([(n, remove_suffix(n, suffixes)) for n in all_names],
                               columns=["name", "short"])
     # look at longer names
