@@ -7,12 +7,28 @@ import os
 import re
 import time
 
+import sys
 import numpy as np
 import pandas as pd
 
 # from spacy.tokenizer import Tokenizer
 from spacy.lang.en import English
 import spacy
+
+
+try:
+    # python package (nlp) location - two levels up from this file
+    src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+    # add package to sys.path if it's not already there
+    if src_path not in sys.path:
+        sys.path.extend([src_path])
+except NameError:
+    print('issue with adding to path, probably due to __file__ not being defined')
+    src_path = None
+
+
+
+
 
 
 from nlp.utils import get_database
@@ -301,7 +317,7 @@ if __name__ == "__main__":
 
     # https://spacy.io/usage/spacy-101#annotations
 
-    # requires:$ python -m spacy download en_core_web_sm
+    # requires:$ python -m spacy download en_core_web_md
     # nlp = spacy.load("en_core_web_lg")
     nlp = spacy.load("en_core_web_sm")
     # nlp = spacy.load("en_core_web_md")
