@@ -96,6 +96,9 @@ if __name__ == "__main__":
     with open(get_data_path("articles_with_names.json"), "r") as f:
         articles = json.load(f)
 
+    # instead, read (a larger) set of articles from mongo
+    # articles = {re.sub("\.json$", "", f["json_file"]): f for f in client["news_articles"]["articles"].find()}
+
     keys = list(articles.keys())
 
     print(f"read in: {len(keys)} articles")
