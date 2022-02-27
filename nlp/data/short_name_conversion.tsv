@@ -1,0 +1,535 @@
+name	in_articles	short_name
+Apple Inc	1350	Apple
+Boeing Co	797	Boeing
+Amazon.com Inc	777	Amazon
+Alphabet Inc	668	Alphabet
+Microsoft Corp	661	Microsoft
+General Motors Co	611	General
+Ford Motor Co	543	Ford
+Tesla Inc	459	Tesla
+AT&T Inc	348	AT&T
+Chevron Corp	341	Chevron
+Intel Corp	321	Intel
+Toyota Motor Corp	295	Toyota
+Exxon Mobil Corp	272	Exxon Mobil
+Mobil Corp	272	Mobil
+Qualcomm Inc	229	Qualcomm
+Federal Aviation Administration	226	Federal
+Netflix Inc	221	Netflix
+Volkswagen AG	218	Volkswagen
+Samsung Electronics Co Ltd	207	Samsung
+American Airlines Group Inc	192	American
+Sprint Corp	189	Sprint
+Lockheed Martin Corp	188	Lockheed
+Walmart Inc	177	Walmart
+Comcast Corp	172	Comcast
+Verizon Communications Inc	171	Verizon
+T-Mobile US Inc	165	T-Mobile
+Huawei Technologies Co Ltd	148	Huawei
+Advanced Micro Devices Inc	145	Advanced Micro Devices
+General Electric Co	144	GE
+Southwest Airlines Co	142	Southwest
+SoftBank Group Corp	124	SoftBank
+Delta Air Lines Inc	113	Delta Air Lines
+FedEx Corp	112	FedEx
+Micron Technology Inc	110	Micron
+Uber Technologies Inc	106	Uber
+United Airlines Holdings Inc	105	United
+United Parcel Service Inc	105	United Parcel
+Airbus SE	102	Airbus
+Nissan Motor Co Ltd	95	Nissan
+Cisco Systems Inc	91	Cisco
+Caterpillar Inc	79	Caterpillar
+Time Warner Inc	78	Time Warner
+Toshiba Corp	76	Toshiba
+Raytheon Co	76	Raytheon
+Sharp Corp	75	Sharp
+International Business Machines Corp	71	IBM
+Anadarko Petroleum Corp	71	Anadarko
+Oracle Corp	69	Oracle
+Panasonic Corp	68	Panasonic
+Renault SA	66	Renault
+Honda Motor Co Ltd	63	Honda
+Mitsubishi Motors Corp	60	Mitsubishi
+Taiwan Semiconductor Manufacturing Co Ltd	56	Taiwan
+Honeywell International Inc	56	Honeywell
+Hyundai Motor Co	53	Hyundai
+Suzuki Motor Corp	53	Suzuki
+Bombardier Inc	50	Bombardier
+LG Chem Ltd	50	LG Chem
+Northrop Grumman Corp	50	Northrop Grumman
+eBay Inc	47	eBay
+Qantas Airways Ltd	43	Qantas
+Alibaba Group Holding Ltd	41	Alibaba
+3M Co	39	3M
+Air Canada	37	Air Canada
+Hon Hai Precision Industry Co Ltd	35	Hon Hai
+Qorvo Inc	35	Qorvo
+SK Hynix Inc	35	SK Hynix
+Coca-Cola Co	31	Coca-Cola
+Spirit AeroSystems Holdings Inc	31	Spirit
+ViacomCBS Inc	29	ViacomCBS
+Safran SA	27	Safran
+LG Electronics Inc	27	LG
+Time Warner Cable Inc	27	Time Warner Cable
+Lumentum Holdings Inc	25	Lumentum
+ZTE Corp	25	ZTE
+Japan Display Inc	25	Japan Display
+Western Digital Corp	24	Western
+Meta Platforms Inc	24	Meta
+Halliburton Co	24	Halliburton
+Costco Wholesale Corp	23	Costco Wholesale
+Deutsche Telekom AG	23	Deutsche Telekom
+ANA Holdings Inc	23	ANA
+Maruti Suzuki India Ltd	23	Maruti Suzuki India
+LG Display Co Ltd	22	LG Display
+Renesas Electronics Corp	22	Renesas
+Siemens AG	22	Siemens
+Mastercard Inc	22	Mastercard
+Home Depot Inc	22	Home Depot
+Phillips 66	22	Phillips 66
+Ally Financial Inc	22	Ally Financial
+Nike Inc	21	Nike
+Samsung Group	21	Samsung
+Xiaomi Corp	21	Xiaomi
+Skyworks Solutions Inc	20	Skyworks Solutions
+Valero Energy Corp	20	Valero
+TikTok	20	TikTok
+Navistar International Corp	20	Navistar
+NXP Semiconductors NV	20	NXP Semiconductors
+Singapore Airlines Ltd	20	Singapore
+Schlumberger NV	20	Schlumberger
+Baidu Inc	19	Baidu
+Denso Corp	19	Denso
+PayPal Holdings Inc	19	PayPal
+Fitbit Inc	19	Fitbit
+HP Inc	18	HP
+NetApp Inc	17	NetApp
+EMC Corp	17	EMC
+Visa Inc	17	Visa
+Cathay Pacific Airways Ltd	17	Cathay Pacific
+Mitsubishi Corp	17	Mitsubishi
+Nokia Oyj	17	Nokia
+SK Innovation Co Ltd	17	SK Innovation
+Peugeot SA	16	Peugeot
+HTC Corp	16	HTC
+Baker Hughes Co	16	Baker Hughes
+Bharti Airtel Ltd	15	Bharti Airtel
+Sempra Energy	15	Sempra
+Marubeni Corp	15	Marubeni
+Wistron Corp	15	Wistron
+Stellantis NV	15	Stellantis
+Google LLC	15	Google
+BP PLC	15	BP
+Foxconn Technology Co Ltd	14	Foxconn
+Tata Motors Ltd	14	Tata
+Activision Blizzard Inc	14	Activision Blizzard
+VMware Inc	14	VMware
+China Mobile Ltd	14	China
+Dell Technologies Inc	14	Dell
+PepsiCo Inc	14	PepsiCo
+Mitsubishi Heavy Industries Ltd	14	Mitsubishi Heavy
+GameStop Corp	13	GameStop
+LinkedIn Corp	13	LinkedIn
+Xilinx Inc	13	Xilinx
+Textron Inc	13	Textron
+Semiconductor Manufacturing International Corp	13	Semiconductor Manufacturing
+United States Postal Service	13	United States Postal
+Equinor ASA	13	Equinor
+Pegatron Corp	12	Pegatron
+Snap Inc	12	Snap
+CAE Inc	11	CAE
+Procter & Gamble Co	11	Procter & Gamble
+Lear Corp	11	Lear
+Dell Inc	11	Dell
+Raytheon Technologies Corp	11	Raytheon
+TDK Corp	11	TDK
+Shell PLC	11	Shell
+Petroliam Nasional Bhd	10	Petroliam Nasional
+Texas Instruments Inc	10	Texas Instruments
+Samsung SDI Co Ltd	10	Samsung SDI
+Rockwell Collins Inc	10	Rockwell Collins
+Hewlett Packard Enterprise Co	10	Hewlett Packard Enterprise
+A123 Systems Inc	10	A123
+Air Lease Corp	10	Air Lease
+Charter Communications Inc	10	Charter
+ASML Holding NV	10	ASML
+Conagra Brands Inc	10	Conagra
+Magna International Inc	10	Magna
+Saab AB	10	Saab
+Contemporary Amperex Technology Co Ltd	10	Contemporary Amperex
+Cheniere Energy Inc	10	Cheniere
+Vodafone Idea Ltd	10	Vodafone Idea
+Cummins Inc	10	Cummins
+Aerojet Rocketdyne Holdings Inc	10	Aerojet Rocketdyne
+Air New Zealand Ltd	10	Air New Zealand
+Corning Inc	10	Corning
+Finisar Corp	9	Finisar
+Audi AG	9	Audi
+Korean Air Lines Co Ltd	9	Korean Air Lines
+BlackBerry Ltd	9	BlackBerry
+Broadcom Inc	9	Broadcom
+Mitsubishi Aircraft Corp	9	Mitsubishi
+Lyft Inc	9	Lyft
+Mazda Motor Corp	9	Mazda
+Sumitomo Corp	8	Sumitomo
+Arista Networks Inc	8	Arista
+Dana Inc	8	Dana
+Transocean Ltd	8	Transocean
+Lam Research Corp	8	Lam Research
+Adobe Inc	8	Adobe
+Air France KLM SA	8	Air France KLM
+Overstock.com Inc	8	Overstock.com
+Rolls-Royce Holdings PLC	8	Rolls-Royce
+Mitsubishi Electric Corp	8	Mitsubishi
+NEC Corp	8	NEC
+SAP SE	8	SAP
+Slack Technologies Inc	7	Slack
+China Southern Airlines Co Ltd	7	China Southern
+Robert Bosch GmbH	7	Robert Bosch GmbH
+Infosys Ltd	7	Infosys
+Cablevision Systems Corp	7	Cablevision
+Nippon Steel Corp	7	Nippon
+Noble Energy Inc	7	Noble
+BHP Group Ltd	7	BHP
+Arm Ltd	7	Arm
+China Telecom Corp Ltd	7	China Telecom
+Sapura Energy Bhd	7	Sapura
+VF Corp	7	VF
+MediaTek Inc	7	MediaTek
+Air China Ltd	7	Air China
+Japan Airlines Co Ltd	7	Japan
+DISH Network Corp	7	DISH Network
+Deere & Co	7	Deere &
+STMicroelectronics NV	7	STMicroelectronics
+Cirrus Logic Inc	7	Cirrus Logic
+Sikorsky Aircraft Corp	6	Sikorsky
+LG Innotek Co Ltd	6	LG Innotek
+International Paper Co	6	International Paper
+Roku Inc	6	Roku
+Hyundai Mobis Co Ltd	6	Hyundai Mobis
+Johnson Controls Inc	6	Johnson Controls
+KDDI Corp	6	KDDI
+Linamar Corp	6	Linamar
+PetroChina Co Ltd	6	PetroChina
+Spirit AeroSystems Inc	6	Spirit
+Tencent Holdings Ltd	6	Tencent
+Visteon Corp	6	Visteon
+Whole Foods Market Inc	6	Whole Foods Market
+Spirit Airlines Inc	6	Spirit
+Emirates Airline	6	Emirates Airline
+Electronic Arts Inc	6	Electronic Arts
+Walgreens Boots Alliance Inc	6	Walgreens Boots Alliance
+Hitachi Ltd	6	Hitachi
+Coty Inc	6	Coty
+Best Buy Co Inc	6	Best Buy
+AAC Technologies Holdings Inc	6	AAC
+BAE Systems PLC	5	BAE
+Advantest Corp	5	Advantest
+JFE Holdings Inc	5	JFE
+Acer Inc	5	Acer
+Fortescue Metals Group Ltd	5	Fortescue Metals
+Dongfeng Motor Group Co Ltd	5	Dongfeng
+DoorDash Inc	5	DoorDash
+News Corp	5	News Corp
+Red Hat Inc	5	Red Hat
+Kohls Corp	5	Kohls
+Dassault Aviation SA	5	Dassault
+Shopify Inc	5	Shopify
+Match Group Inc	5	Match
+Inphi Corp	5	Inphi
+BYD Co Ltd	5	BYD
+China Eastern Airlines Corp Ltd	5	China Eastern
+Mitsui & Co Ltd	5	Mitsui &
+China Petroleum & Chemical Corp	5	China
+II-VI Inc	5	II-VI
+Epic Games Inc	5	Epic Games
+Traton SE	5	Traton
+Vir Biotechnology Inc	4	Vir Biotechnology
+Eagle Ottawa LLC	4	Eagle Ottawa
+CSL Ltd	4	CSL
+Tyson Foods Inc	4	Tyson Foods
+Cox Communications Inc	4	Cox
+Alnylam Pharmaceuticals Inc	4	Alnylam Pharmaceuticals
+LifeLock Inc	4	LifeLock
+United Microelectronics Corp	4	United Microelectronics
+Continental AG	4	Continental
+Reliance Jio Infocomm Ltd	4	Reliance Jio Infocomm
+Tokyo Electron Ltd	4	Tokyo Electron
+Vitol SA	4	Vitol
+Rivian Automotive LLC	4	Rivian
+Quanta Computer Inc	4	Quanta Computer
+Reliance Industries Ltd	4	Reliance
+Alstom SA	4	Alstom
+NetSuite Inc	4	NetSuite
+Vodafone Group PLC	4	Vodafone
+American Airlines Inc	4	American
+GS Yuasa Corp	4	GS Yuasa
+Juniper Networks Inc	4	Juniper
+Oshkosh Corp	4	Oshkosh
+Pinterest Inc	4	Pinterest
+Oil Search Ltd	4	Oil Search
+Harley-Davidson Inc	4	Harley-Davidson
+Gol Linhas Aereas Inteligentes SA	4	Gol Linhas Aereas Inteligentes
+Intersil Corp	4	Intersil
+Air Canada Pilots Association	4	Air Canada Pilots
+Itochu Corp	4	Itochu
+Sony Group Corp	4	Sony
+Nuance Communications Inc	4	Nuance
+Applied Materials Inc	4	Applied Materials
+Singapore Telecommunications Ltd	4	Singapore Telecommunications
+NortonLifeLock Inc	4	NortonLifeLock
+Bridgestone Corp	4	Bridgestone
+Kia Corp	4	Kia
+Kobe Steel Ltd	4	Kobe
+Tata Steel Ltd	4	Tata
+Broadcom Corp	4	Broadcom
+Saudi Arabian Oil Co	4	Saudi Arabian
+Hexcel Corp	4	Hexcel
+Telstra Corporation Ltd	4	Telstra Corporation
+Air Transport Services Group Inc	4	Air Transport Services
+Akamai Technologies Inc	3	Akamai
+NTT Docomo Inc	3	NTT Docomo
+Zoom Video Communications Inc	3	Zoom Video
+Youku Tudou Inc	3	Youku Tudou
+XPO Logistics Inc	3	XPO Logistics
+CNOOC Ltd	3	CNOOC
+National Iranian Oil Co	3	National Iranian
+Workhorse Group Inc	3	Workhorse
+Piedmont Lithium Inc	3	Piedmont Lithium
+BCE Inc	3	BCE
+Repsol SA	3	Repsol
+Air Products and Chemicals Inc	3	Air Products and Chemicals
+Porsche Automobil Holding SE	3	Porsche Automobil
+Nufarm Ltd	3	Nufarm
+WestJet Airlines Ltd	3	WestJet
+Norwegian Air Shuttle ASA	3	Norwegian Air Shuttle
+Albemarle Corp	3	Albemarle
+Nitto Denko Corp	3	Nitto Denko
+DTE Energy Co	3	DTE
+Lenovo Group Ltd	3	Lenovo
+Chorus Aviation Inc	3	Chorus
+Thales SA	3	Thales
+Australian Mines Ltd	3	Australian Mines
+Ciena Corp	3	Ciena
+Kroger Co	3	Kroger
+Sesame Workshop	3	Sesame Workshop
+Take-Two Interactive Software Inc	3	Take-Two Interactive
+Shanghai Fosun Pharmaceutical Group Co Ltd	3	Shanghai Fosun Pharmaceutical
+Astronics Corp	3	Astronics
+Glencore PLC	3	Glencore
+Aeva Inc	3	Aeva
+Integrated Device Technology Inc	3	Integrated Device
+Sumitomo Chemical Co Ltd	3	Sumitomo Chemical
+Harman International Industries Inc	3	Harman
+Aimia Inc	3	Aimia
+Spotify Technology SA	3	Spotify
+Honeywell Aerospace	3	Honeywell
+FIH Mobile Ltd	3	FIH
+Tenneco Inc	3	Tenneco
+Leonardo SpA	3	Leonardo
+Marvell Technology Inc	3	Marvell
+Salesforce.Com Inc	3	Salesforce.Com
+Mattel Inc	3	Mattel
+Aveos Fleet Performance Inc	3	Aveos Fleet Performance
+Ducommun Inc	3	Ducommun
+TomTom NV	3	TomTom
+Samsung C&T Corp	3	Samsung C&T
+Autoliv Inc	3	Autoliv
+Mahindra and Mahindra Ltd	3	Mahindra and Mahindra
+Mangalore Refinery and Petrochemicals Ltd	3	Mangalore Refinery and Petrochemicals
+Detroit Thermal Systems LLC	3	Detroit Thermal
+Abu Dhabi National Oil Co	2	Abu Dhabi National
+Singapore Technologies Engineering Ltd	2	Singapore
+Rheinmetall AG	2	Rheinmetall
+Pilbara Minerals Ltd	2	Pilbara Minerals
+Ryanair Holdings PLC	2	Ryanair
+Space Exploration Technologies Corp	2	Space Exploration
+Zynga Inc	2	Zynga
+Rio Tinto PLC	2	Rio Tinto
+Sun Country Airlines Holdings Inc	2	Sun Country
+Woodward Inc	2	Woodward
+Sunny Optical Technology Group Co Ltd	2	Sunny Optical
+Pivotal Software Inc	2	Pivotal
+AMC Networks Inc	2	AMC
+TE Connectivity Ltd	2	TE Connectivity
+Talon Metals Corp	2	Talon Metals
+TechnipFMC PLC	2	TechnipFMC
+Wipro Ltd	2	Wipro
+Wintek Corp	2	Wintek
+Qualtrics International Inc	2	Qualtrics
+Teradata Corp	2	Teradata
+Petroleos de Venezuela SA	2	Petroleos de Venezuela
+BOE Technology Group Co Ltd	2	BOE
+Petrofac Ltd	2	Petrofac
+Johnson Controls International PLC	2	Johnson Controls
+Cameron International Corp	2	Cameron
+Mondelez International Inc	2	Mondelez
+Mellanox Technologies Ltd	2	Mellanox
+Celestica Inc	2	Celestica
+Cellco Partnership	2	Cellco Partnership
+Cerner Corp	2	Cerner
+Marketo Inc	2	Marketo
+Luxshare Precision Industry Co Ltd	2	Luxshare
+Livent Corp	2	Livent
+Kraft Heinz Co	2	Kraft Heinz
+Compal Electronics Inc	2	Compal
+Isuzu Motors Ltd	2	Isuzu
+CVS Health Corp	2	CVS Health
+Cray Inc	2	Cray
+International Air Transport Association	2	International Air Transport
+E Ink Holdings Inc	2	E Ink
+Engie SA	2	Engie
+Eni SpA	2	Eni
+Autodom Ltd	2	Autodom
+Huntsman Corp	2	Huntsman
+Fisker Inc	2	Fisker
+Hess Corp	2	Hess
+Fortinet Inc	2	Fortinet
+Ganfeng Lithium Co Ltd	2	Ganfeng Lithium
+Murata Manufacturing Co Ltd	2	Murata Manufacturing
+Collins Aerospace	2	Collins
+Bazaarvoice Inc	2	Bazaarvoice
+CFM International Inc	2	CFM
+Oath Inc	2	Oath
+Orange SA	2	Orange
+BHP Group PLC	2	BHP
+Barnes & Noble Inc	2	Barnes & Noble
+Newell Brands Inc	2	Newell
+Opower Inc	2	Opower
+Alcoa Corp	2	Alcoa
+Nayara Energy Ltd	2	Nayara
+Bed Bath & Beyond Inc	2	Bed Bath & Beyond
+NVIDIA Corp	2	NVIDIA
+Nikon Corp	2	Nikon
+Eastman Kodak Co	1	Eastman Kodak
+YPF SA	1	YPF
+Edgewell Personal Care Co	1	Edgewell Personal Care
+Bayerische Motoren Werke AG	1	Bayerische Motoren Werke
+Digia Oyj	1	Digia
+Deutsche Lufthansa AG	1	Deutsche Lufthansa
+Exa Corp	1	Exa
+TotalEnergies SE	1	TotalEnergies
+Zhejiang Geely Holding Group Co Ltd	1	Zhejiang Geely
+Barloworld Ltd	1	Barloworld
+FCA US LLC	1	FCA
+Tesco PLC	1	Tesco
+FLIR Systems Inc	1	FLIR
+Flex Ltd	1	Flex
+Flipkart Online Services Pvt Ltd	1	Flipkart Online Services Pvt
+Telia Company AB	1	Telia Company
+Telenor ASA	1	Telenor
+Atlas Air Worldwide Holdings Inc	1	Atlas Air Worldwide
+Formosa Petrochemical Corp	1	Formosa
+Zoox Inc	1	Zoox
+Fossil Group Inc	1	Fossil
+Fujitsu Ltd	1	Fujitsu
+GS Caltex Corp	1	GS Caltex
+Baoshan Iron & Steel Co Ltd	1	Baoshan Iron &
+Accenture PLC	1	Accenture
+Cadence Design Systems Inc	1	Cadence Design
+DISH DBS Corp	1	DISH DBS
+Coca Cola HBC AG	1	Coca Cola HBC
+Westinghouse Air Brake Technologies Corp	1	Westinghouse Air Brake
+CSRA Inc	1	CSRA
+Canadian Imperial Bank of Commerce	1	Canadian Imperial Bank of Commerce
+WPP PLC	1	WPP
+Carbon Black Inc	1	Carbon Black
+Cargojet Inc	1	Cargojet
+CACI International Inc	1	CACI
+British Airways PLC	1	British
+Vista Outdoor Inc	1	Vista Outdoor
+China Tower Corp Ltd	1	China Tower
+Bosch Corp	1	Bosch
+Citrix Systems Inc	1	Citrix
+Gentex Corp	1	Gentex
+Cypress Semiconductor Corp	1	Cypress
+Verisign Inc	1	Verisign
+Veoneer Inc	1	Veoneer
+Avaya Inc	1	Avaya
+Vale SA	1	Vale
+Communications Workers of America	1	Communications Workers of America
+Conocophillips	1	Conocophillips
+Convergys Corp	1	Convergys
+Copa Holdings SA	1	Copa
+Beyond Meat Inc	1	Beyond Meat
+AU Optronics Corp	1	AU Optronics
+Waymo LLC	1	Waymo
+Curtiss-Wright Corp	1	Curtiss-Wright
+AstraZeneca PLC	1	AstraZeneca
+Hertz Corp	1	Hertz
+Synopsys Inc	1	Synopsys
+NBCUniversal Media LLC	1	NBCUniversal
+Murphy Oil Corp	1	Murphy
+Motherson Sumi Systems Ltd	1	Motherson Sumi
+Mercadolibre Inc	1	Mercadolibre
+Rolls-Royce PLC	1	Rolls-Royce
+McAfee LLC	1	McAfee
+SBA Communications Corp	1	SBA
+Maxwell Technologies Inc	1	Maxwell
+Maxar Technologies Inc	1	Maxar
+Martinrea International Inc	1	Martinrea
+Saipem SpA	1	Saipem
+Ambri Inc	1	Ambri
+Samsung Electronics America Inc	1	Samsung
+Lithium Americas Corp	1	Lithium Americas
+Leoni AG	1	Leoni
+Samsung Life Insurance Co Ltd	1	Samsung Life Insurance
+Rivian Automotive Inc	1	Rivian
+Republic Airways Holdings Inc	1	Republic
+LATAM Airlines Group SA	1	LATAM
+Nan Ya Plastics Corp	1	Nan Ya Plastics
+PPG Industries Inc	1	PPG
+Pfizer Inc	1	Pfizer
+Aker BP ASA	1	Aker
+Pilipinas Shell Petroleum Corp	1	Pilipinas Shell
+One 97 Communications Ltd	1	One 97
+Omnicom Group Inc	1	Omnicom
+Ocado Group PLC	1	Ocado
+Alcatel Lucent SA	1	Alcatel Lucent
+Nippon Sheet Glass Co Ltd	1	Nippon Sheet Glass
+Ningbo Joyson Electronic Corp	1	Ningbo Joyson Electronic
+Nimble Storage Inc	1	Nimble Storage
+Nielsen Holdings PLC	1	Nielsen
+Nidec Corp	1	Nidec
+NiSource Inc	1	NiSource
+NeoPhotonics Corp	1	NeoPhotonics
+Lattice Semiconductor Corp	1	Lattice
+Kornit Digital Ltd	1	Kornit
+Synacor Inc	1	Synacor
+Songa Offshore SE	1	Songa Offshore
+Inari Amertron Bhd	1	Inari Amertron
+Aptiv PLC	1	Aptiv
+Spirent Communications plc	1	Spirent
+Home Box Office Inc	1	Home Box Office
+Hindustan Petroleum Corp Ltd	1	Hindustan
+Hertz Global Holdings Inc	1	Hertz Global
+Spreadtrum Communications Inc	1	Spreadtrum
+Paccar Inc	1	Paccar
+Hasbro Inc	1	Hasbro
+Subsea 7 SA	1	Subsea 7
+HPCL-Mittal Energy Ltd	1	HPCL-Mittal
+Gunvor Group Ltd	1	Gunvor
+Groupm	1	Groupm
+Great Wall Motor Co Ltd	1	Great Wall
+Golar LNG Ltd	1	Golar LNG
+Sonos Inc	1	Sonos
+Sona BLW Precision Forgings Ltd	1	Sona BLW
+Seadrill Ltd	1	Seadrill
+SolarWinds Corp	1	SolarWinds
+Kelt Exploration Ltd	1	Kelt Exploration
+KT Corp	1	KT
+ServiceNow Inc	1	ServiceNow
+KLA Corp	1	KLA
+Jaguar Land Rover Automotive PLC	1	Jaguar Land Rover
+InvenSense Inc	1	InvenSense
+Showa Denko KK	1	Showa Denko KK
+Interpublic Group of Companies Inc	1	Interpublic
+Amphenol Corp	1	Amphenol
+Interglobe Aviation Ltd	1	Interglobe
+Ampol Ltd	1	Ampol
+Inseego Corp	1	Inseego
+Inpex Corp	1	Inpex
+Infraestructura Energetica Nova SAB de CV	1	Infraestructura Energetica Nova SAB de CV
+Infineon Technologies AG	1	Infineon
+Altium Ltd	1	Altium
