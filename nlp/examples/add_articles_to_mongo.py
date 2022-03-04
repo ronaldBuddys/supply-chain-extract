@@ -47,6 +47,7 @@ if __name__ == "__main__":
 
     # host / source
     host = 'www.reuters.com'
+    # host = 'uk.reuters.com'
 
     # 'batch' size - how many full articles to read from file at once
     # - to avoid using too much memory in reading all
@@ -260,14 +261,13 @@ if __name__ == "__main__":
     # NOTE: articles_searched should have (after running once) documents containing
     # {"json_file": *, "sets_searched": ["set_name<#>", "set_name<#2>"]}
 
-    # # make an index of the json_file  in articles to search
-    # #  - this was done once to help improve bulk_write to "articles_searched"
-    # import pymongo
-    # art_db["articles_searched"].create_index([("json_file", pymongo.ASCENDING)])
 
     # articles that have been previously searched - json_file as key and sets_searched as values
-    article_searched_setname = {a["json_file"]: {"sets_searched": a["sets_searched"]}
+    # - also include id
+    article_searched_setname = {a["json_file"]: {"sets_searched": a["sets_searched"],
+                                                 "_id": a["_id"]}
                                 for a in art_db["articles_searched"].find({"json_file": {"$exists": True}})}
+
 
     # combine the setname searched per article - so can use as a key later
     # - combine as a string using : as a separator
@@ -380,6 +380,8 @@ if __name__ == "__main__":
         # store in a list articles for bulk insert and update
         bulk_insert = []
         bulk_update = []
+
+        # for each file in batch read
         for j, jf in enumerate(batch_files.keys()):
 
             # TODO: here want to be able to get the previously searched company names
@@ -396,7 +398,7 @@ if __name__ == "__main__":
             if jf in article_searched_setname:
                 # get the previously searched combined set name
                 csn = article_searched_setname[jf]["comb_set_name"]
-            # otherwise the articles was not searched previously
+            # otherwise, the articles was not searched previously
             else:
                 # so use the 'current_set' - for getting the regression tree
                 csn = "current_set"
@@ -463,15 +465,29 @@ if __name__ == "__main__":
         # update / insert setname for articles searched for in batch
         batch_jf_files = list(batch_files.keys())
 
+        # get the _id for the json files (will exist if already searched)
+        # - use to add to 'sets_searched' array
         # ref: https://pymongo.readthedocs.io/en/stable/examples/bulk.html
-        bulk_write = [UpdateOne(filter={"json_file": bjf},
+        # TODO: confirm this is working as expected - i.e. adding to existing
+        bulk_write = [UpdateOne(filter={"_id": article_searched_setname[bjf]["_id"]},
                                 update={
-                                    "$set": {"json_file": bjf},
                                     "$addToSet": {"sets_searched": setname}
                                 },
-                                upsert=True)
-                      for bjf in batch_jf_files]
-        art_db["articles_searched"].bulk_write(bulk_write)
+                                upsert=False)
+                      for bjf in batch_jf_files
+                      if bjf in article_searched_setname]
+
+        # if the articles have not been previously searched - just insert them
+        insert_many_art_searched = [{"json_file": bjf, "sets_searched": [setname]}
+                                    for bjf in batch_jf_files
+                                    if bjf not in article_searched_setname]
+
+        if len(bulk_write):
+            art_db["articles_searched"].bulk_write(bulk_write)
+        # is this needed?
+        if len(insert_many_art_searched):
+            art_db["articles_searched"].insert_many(insert_many_art_searched)
+
         t1_ = time.perf_counter()
 
         print(f"time for (bulk) inserts and updates: {t1_ - t0_:.2f} seconds")
@@ -751,3 +767,27 @@ if __name__ == "__main__":
     # tmp = {k: ["set_name1"] for k in all_files.keys()}
     # with open(get_data_path("article_setname.json"), "w") as f:
     #     json.dump(tmp, f)
+
+
+    # DON'T DO THIS - using 'json_file' as an index turns out to be memory intensive!
+    # - used "_id" instead - as it's an index (and low memory)
+    # # make an index of the json_file  in articles to search
+    # #  - this was done once to help improve bulk_write to "articles_searched"
+    # import pymongo
+    # art_db["articles_searched"].create_index([("json_file", pymongo.ASCENDING)])
+    # art_db["articles_searched"].drop_index([("json_file", pymongo.ASCENDING)])
+
+    # HACK: some articles searched were added without 'json_file' field - drop those
+    # art_db["articles_searched"].delete_many(filter={"json_file": {"$exists": False}, "sets_searched": {"$exists": True}})
+
+
+    # tmp = [(a["json_file"], a["_id"])
+    #        for a in art_db["articles_searched"].find({"json_file": {"$exists": True}}) ]
+    # asdf = pd.DataFrame(tmp, columns=["json_file", "_id"])
+    #
+    # asc = pd.pivot_table(asdf,
+    #                index=["json_file"],
+    #                values="_id",
+    #                aggfunc="count")
+    #
+    # asc.sort_values("_id", ascending=False)
