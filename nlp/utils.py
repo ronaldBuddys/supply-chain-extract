@@ -9,6 +9,7 @@ import re
 from OpenPermID import OpenPermID
 from nlp import get_configs_path
 
+
 def get_database(username, password, clustername):
     # source: https://www.mongodb.com/languages/python
 
@@ -74,8 +75,62 @@ def search_company(ticker, api_key=None, num=10):
     return org
 
 
+def make_reg_tree(c, cur_node=1, max_node=1):
+
+    if cur_node >= max_node:
+        return {"|".join(c): c}
+    else:
+        n = len(c)
+        _ = {"|".join(c): {
+
+            **make_reg_tree(c[:n//2],
+                            cur_node=cur_node+1,
+                            max_node=max_node),
+            **make_reg_tree(c[n//2:],
+                            cur_node=cur_node+1,
+                            max_node=max_node)},
+        }
+        return _
+
+def get_list_from_tree(text, rtree, out=None):
+
+    if out is None:
+        out = []
+
+    for k, v in rtree.items():
+        if isinstance(v, dict):
+            if re.search(k, text):
+                get_list_from_tree(text, v, out)
+        else:
+            if re.search(k, text):
+                out += v
+    return out
+
 if __name__ == "__main__":
 
     # search for company information
     ticker_info = search_company(ticker="GM")
 
+    # ---
+    # searching for (many) names in text - using regex
+    # ---
+    # TODO: add unit test for make_reg_tree and get_list_from_tree
+
+    # 'company' names
+    c = ['a', 'b', 'c', 'd',
+         'e', 'f', 'h', 'i',
+         'j', 'k', 'l', 'm',
+         'n', 'o', 'p', 'q',
+         "r", "s", "t"]
+
+    # make a tree, combining names with | and splitting up the list as go down to leafs
+    rtree = make_reg_tree(c, cur_node=0, max_node=3)
+
+    print(json.dumps(rtree, indent=4))
+
+    # simple text to search for 'company' names
+    text = "asdf"
+
+    # aim is to get a reduced set of company names to search
+    # - as it can be very slow to search for each company one by one
+    short_list = get_list_from_tree(text, rtree)

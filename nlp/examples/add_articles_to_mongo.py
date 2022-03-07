@@ -35,6 +35,7 @@ if __name__ == "__main__":
 
     # TODO: investigate why not all articles have 'names_in_text' entry - they should
     # TODO: bulk upload for articles searched is very slow
+    # TODO: move document with 'docname' in 'articles_searched' into own database
 
     pd.set_option("display.max_columns", 200)
 
@@ -81,11 +82,18 @@ if __name__ == "__main__":
 
     # database
     # find many - store in dataframe - is this now slow?
-    # t1 = time.time()
+    t1 = time.time()
     # get the value chain data
-    vc = pd.DataFrame(list(client["refinitiv"]['VCHAINS'].find(filter={})))
-    # t2 = time.time()
-    # print(f"time to read in all value chains: {t2-t1:.2f} seconds")
+    vc_col = client["refinitiv"]['VCHAINS']
+    vc = pd.DataFrame(list(vc_col.find(filter={})))
+    t2 = time.time()
+    print(f"time to read in all value chains: {t2-t1:.2f} seconds")
+
+    # t1 = time.time()
+    # vc_col.find_one()
+    # art_db["articles"].find_one()
+    # t2=time.time()
+    # print(t2 -t1)
 
     # drop _id col
     vc.drop("_id", axis=1, inplace=True)
@@ -169,14 +177,14 @@ if __name__ == "__main__":
 
     # get all the documents that have been previously searched for
     # some set of company names already
-    tmp = [ {k: v for k, v in d.items() if k != "_id"}
-            for d in art_db["articles_searched"].find(filter={"docname": {"$exists": False}})]
-
-    # https://stackoverflow.com/questions/58940431/unpack-list-of-dictionaries-in-python
-    # list to dict - want to unpack each dict in list into large dict
-    prev_searched = {}
-    for i in tmp:
-        prev_searched.update(i)
+    # tmp = [ {k: v for k, v in d.items() if k != "_id"}
+    #         for d in art_db["articles_searched"].find(filter={"docname": {"$exists": False}})]
+    #
+    # # https://stackoverflow.com/questions/58940431/unpack-list-of-dictionaries-in-python
+    # # list to dict - want to unpack each dict in list into large dict
+    # prev_searched = {}
+    # for i in tmp:
+    #     prev_searched.update(i)
 
     # ----
     # get information on files (json articles) on file system
@@ -263,7 +271,7 @@ if __name__ == "__main__":
 
 
     # articles that have been previously searched - json_file as key and sets_searched as values
-    # - also include id
+    # # - also include id
     article_searched_setname = {a["json_file"]: {"sets_searched": a["sets_searched"],
                                                  "_id": a["_id"]}
                                 for a in art_db["articles_searched"].find({"json_file": {"$exists": True}})}
@@ -331,13 +339,19 @@ if __name__ == "__main__":
     # store articles that contain any name in company_names in a list
     articles_with_names = []
 
-    # get the json_file names of all the 'articles' collection
-    art_jf = [f["json_file"] for f in art_db["articles"].find() if "json_file" in f]
+    # get the json_file and 'names_in_text' of all the 'articles' collection
+    # - use a projection (the second argument) in find(...) can reduce arguments that come back
+    # - and thus network usage - plus it's quicker
+    tmp = {f["json_file"]: f.get("names_in_text", None)
+           for f in art_db["articles"].find({}, {"json_file": 1, "names_in_text": 1})}
+
+    # get a list of the article json files
+    art_jf = [jf for jf in tmp.keys()]
 
     # get the names_in_text already found for each file
-    nint = {f["json_file"]: f["names_in_text"]
-            for f in art_db["articles"].find()
-            if ("json_file" in f) & ("names_in_text" in f)}
+    nint = {k: v
+            for k, v in tmp.items()
+            if v is not None}
 
     # keep track of articles to update
     found_count = 0
@@ -791,3 +805,8 @@ if __name__ == "__main__":
     #                aggfunc="count")
     #
     # asc.sort_values("_id", ascending=False)
+
+    # art_db["articles_searched"].find_one({"json_file": {"$exists": True}},
+    #                                      {"json_file": 0,
+    #                                       "sets_searched": 1})
+    # art_db["articles_searched"].find_one({"json_file": {"$exists": True}}, {"sets_searched": 1})

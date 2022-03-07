@@ -27,10 +27,6 @@ except NameError:
     src_path = None
 
 
-
-
-
-
 from nlp.utils import get_database
 from nlp import get_configs_path, get_data_path
 
@@ -68,10 +64,19 @@ def get_start_end(a, b, aname="a", bname="b"):
 
 if __name__ == "__main__":
 
+    # TODO: determine why some articles are missing 'names_in_text'
     # TODO: confirm using the long name -> short name replacement
     # TODO: review long name -> short name relationship, try to avoid using rigit rules
     # TODO: add entity rule for short names using spacy?
     # TODO: attempt relationship mapping
+
+    # ----
+    # parameters
+    # ----
+
+    # if True will read articles from local json file: data/articles.json
+    # - this can reduce burden on the remote database (network usage)
+    read_local_articles = True
 
     # ----
     # connect to database
@@ -91,13 +96,21 @@ if __name__ == "__main__":
     # ----
 
     # TODO: could read from database, put that here
+    if read_local_articles:
+        # read proof of concept data
+        with open(get_data_path("articles.json"), "r") as f:
+            article_list = json.load(f)
 
-    # read proof of concept data
-    with open(get_data_path("articles_with_names.json"), "r") as f:
-        articles = json.load(f)
+        #
+        articles = {re.sub("\.json$", "", f["json_file"]): f
+                    for f in article_list if "names_in_text" in f}
 
-    # instead, read (a larger) set of articles from mongo
-    # articles = {re.sub("\.json$", "", f["json_file"]): f for f in client["news_articles"]["articles"].find()}
+    else:
+        # instead, read (a larger) set of articles from mongo
+        # - this can be quite large
+        # because taking 'names_in_text' this might not be everything
+        articles = {re.sub("\.json$", "", f["json_file"]): f
+                    for f in client["news_articles"]["articles"].find({'names_in_text': {"$exists": True}})}
 
     keys = list(articles.keys())
 
@@ -115,13 +128,15 @@ if __name__ == "__main__":
 
     # get all names
     all_names = np.unique(np.concatenate([v["names_in_text"]
-                                          for k, v in articles.items()]))
+                                          for k, v in articles.items()
+                                          if "names_in_text" in v]))
     # add a dash in names to have more explicit matching (?)
     dash_names = {n: re.sub(" ", "-", n) for n in all_names}
 
     # for each article replace the name with the dashed name
     # - the idea is this will help with tokenizing
     names_in_text_dict = {}
+    bad_articles = {}
     for k in keys:
         a = articles[k]
         anames = np.array(a["names_in_text"])
@@ -139,12 +154,17 @@ if __name__ == "__main__":
                 maintext = re.sub(an, dash_names[an], maintext)
             else:
                 # print(f"could not find: {an} in {k}")
-                pass
+                if k in bad_articles:
+                    bad_articles[k] += [an]
+                else:
+                    bad_articles[k] = [an]
 
         names_in_text_dict[k] = name_in_article
 
     # keep only those articles with two or more names_in_text
-    articles = {k: articles[k] for k, v in names_in_text_dict.items() if len(v) > 1}
+    articles = {k: articles[k]
+                for k, v in names_in_text_dict.items()
+                if len(v) > 1}
 
     print(f"after removing erroneous articles, there are now: {len(articles)} articles")
 
@@ -603,3 +623,15 @@ if __name__ == "__main__":
     # len([n for n, v in short_name_dict.items() if len(v) == 0])
     #
     #
+
+    # get the articles that have no names in text
+    # no_names_in_text = [f for f in client["news_articles"]["articles"].find({'names_in_text': {"$exists": False}})]
+    # # save them local - must convery _id
+    # tmp = []
+    # for n in no_names_in_text:
+    #     n["_id"] = str("_id")
+    #     tmp.append(n)
+    # with open(get_data_path("articles_with_no_names_in_text.json"), "w") as f:
+    #     json.dump(tmp, f)
+    # # drop those articles
+    # client["news_articles"]["articles"].delete_many({'names_in_text': {"$exists": False}})
