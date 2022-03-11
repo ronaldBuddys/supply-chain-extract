@@ -394,7 +394,7 @@ def article_update(title, short_names, long_name):
         short_name_list = short_names.split(",")
         short_name_list.sort(reverse=True, key=lambda x: len(x))
         # HARDCODED: splitting names on ',' - don't expect comma to be in company name
-        more_color_text = [{'word': i, "style": {"backgroundColor": "pink", 'display': 'inline-block'} }
+        more_color_text = [{'word': i.lstrip().rstrip(), "style": {"backgroundColor": "pink", 'display': 'inline-block'} }
                            for i in short_name_list]
         color_text += more_color_text
 
