@@ -6,6 +6,9 @@ import json
 import os
 import re
 import time
+import gzip
+import itertools
+
 
 import sys
 import numpy as np
@@ -14,21 +17,26 @@ import pandas as pd
 # from spacy.tokenizer import Tokenizer
 from spacy.lang.en import English
 import spacy
+from spacy.matcher import PhraseMatcher
 
 
 try:
     # python package (nlp) location - two levels up from this file
-    src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+    src_path = os.path.abspath(os.path.join(os.getcwd(), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
         sys.path.extend([src_path])
 except NameError:
     print('issue with adding to path, probably due to __file__ not being defined')
     src_path = None
-
-
+    
 from nlp.utils import get_database
 from nlp import get_configs_path, get_data_path
+
+from collections import Counter
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 
 
 def find_all_articles_with_name(articles, name):
@@ -64,11 +72,28 @@ def get_start_end(a, b, aname="a", bname="b"):
 
 if __name__ == "__main__":
 
-    # TODO: determine why some articles are missing 'names_in_text'
-    # TODO: confirm using the long name -> short name replacement
-    # TODO: review long name -> short name relationship, try to avoid using rigit rules
-    # TODO: add entity rule for short names using spacy?
-    # TODO: attempt relationship mapping
+    #TODO: Cleaning of news data
+    #Extra cleaning on the news data? 
+    #Clean out bad articles
+
+    #TODO: Long.Short Name Conversion
+    #Long name to many short names
+
+    #TODO: Article analysis on number of false positives
+    #Look at how articles mention each c
+    # ompany 
+    #Eyeball false positive to true positives 
+    #False positives -> Create manual labels 
+
+    #TODO: NEgative Examples
+    #Negative Examples
+    #Negative example from articles that mentions company A from KB and any entity recognised by spaCy
+    #Use spacy tags to create negative examples?
+
+    #TODO: More Spacy Integration and Language Model Integration
+    #Use cusutom tokenizier instead of regex to match entities
+    #E.g. Spacy POS Tags to be used as features
+    #Figure out where inthe process a large language model would fit
 
     # ----
     # parameters
@@ -121,6 +146,9 @@ if __name__ == "__main__":
     # ---
 
     vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
+
+    #TODO: Connect to DB to load latest mapping of long to short name
+    #print(f"database names: {client.list_database_names()}")
 
     # ---
     # remove names pairs that have been erroneously found in text, because of similarities in names
@@ -229,10 +257,11 @@ if __name__ == "__main__":
 
     print(f"there are: {len(supply_articles)} that mention {'supply|supplier|supplies'}")
 
+    
     # ----
     # title count
     # ----
-
+    #####This is optional exploratory analysis##### 
     all_titles = {"titles": [a['title'] for a in articles.values()]}
     all_titles = pd.DataFrame(all_titles)
     all_titles["count"] = 1
@@ -267,6 +296,7 @@ if __name__ == "__main__":
     # ---
     # get name suffixes - in an attempt to make a 'short' name that often gets referenced in article
     # ---
+    # TODO: Replace this with MongoDB Mapping
 
     # TODO: short_name_map needs to be reviewed!, preferable to use some NLP package (spacy?)
     # This is pretty hard coded list of company name 'suffixes'
@@ -330,6 +360,8 @@ if __name__ == "__main__":
 
     # TODO: remove "F2 percent" ? LMT;-PCTCHNG:2} ?
 
+    ####Section on Creating examples
+    
     # ----
     # spacy
     # ----
@@ -345,63 +377,113 @@ if __name__ == "__main__":
     nlp = spacy.load("en_core_web_sm")
     # nlp = spacy.load("en_core_web_md")
 
+    # ----
+    # Extending entity ruler -> NOT USED AT THIS POINT ANYMORE (Use direct matching of company short name instead ) TODO: Use custom tokenizer instead
+    # ----
     # https://spacy.io/usage/rule-based-matching#entityruler
-    ruler = nlp.add_pipe('entity_ruler')
 
+    ruler = nlp.add_pipe('entity_ruler')
     patterns = [{"label": "ORG", "pattern": v} for v in short_name_map.values()]
     ruler.add_patterns(patterns)
-    # print(json.dumps(patterns, indent=4))
 
-    # for articles that mention supply (or similar)
-    # - found the company pairs
+    # ----
+    # Start of loop to create examples
 
     # store results in a list
     out = []
-    investigate = []
+    #Create an error log
+    errorlog = {}
     # increment over each of the articles that reference supply
     for ii, k in enumerate(supply_articles):
+    #for ii, k in enumerate(["d70b8e93655d2bcfe4d17991e8d6a3a6ef5b8bd6b86d55e6a7ebd5ae5b1b637e"]):
         if ii % 100 == 0:
             print(f"{ii} / {len(supply_articles)}")
+        
+        #This create all possible pairs that are included in the article 
+        combinations = itertools.combinations(articles[k]["names_in_text"],2)   
+        pairs_list = [f"{combination[0]}|{combination[1]}" for combination in combinations]
+        
+        #cps lists all the pairs that are included in the article that are also in the knowledge base -> Will use this to create a label for the article
         cps = [cp for cp, v in cpairs.items() if k in v]
+        #cps includes all paris from the KB mentioned in the article. cps_mirror includes all the reversed pairs
+        #This is done so that the order in which all possible pairs were created does not matter when we generate the label
+        cps_mirror = cps + [f"{cp.split('|')[::-1][0]}|{cp.split('|')[::-1][1]}" for cp in cps]
+
         text = articles[k]["maintext"]
         doc = nlp(text)
 
+        #Split article into sentences
         sent_list = list(doc.sents)
         sent_start = np.array([sent.start_char for sent in doc.sents])
         sent_end = np.array([sent.end_char for sent in doc.sents])
+        
         # for each pair, get the short name
-        for cp in cps:
+        for cp in pairs_list:
+            #TODO: Check if better to use custom tokenizier
             # long names
             ln = cp.split("|")
+            # find relevant short name using the mapping to match names in text
             sn = [short_name_map[l] for l in ln]
+
+            # Generate a label for the pair that is used forall senteces
+            label = 1 if cp in cps_mirror else 0
 
             # find the locations where entity 'a' is mentioned
             # a = [(m.start(), m.end()) for m in re.finditer(sn[0], articles[k]["maintext"])]
 
             try:
-                # using the entity recognition
-                # a = [(ent.start_char, ent.end_char) for ent in doc.ents if ent.text == sn[0]]
-                # TODO: review if can get deal with apostrophes on entity names through spacy
-                #  i.e. identify Lockheed Martin instead Lockheed Martin's as an entity
-                # NOTE: this will sometimes not even work: got 'Lockheed' 'Martin' as to separate entities
-                a = [(ent.start_char, ent.end_char) for ent in doc.ents if re.search(f"^{sn[0]}", ent.text)]
-                a = np.array(a)
+                #Finding short names using regex over full doc
+                #First find all mentions of a and b
+                a_unf = []
+                expression_a = sn[0]
+                for match in re.finditer(expression_a, doc.text):
+                    a_unf.append(match)
+                
+                b_unf = []
+                expression_b = sn[1]
+                for match in re.finditer(expression_b, doc.text):
+                    b_unf.append(match)
 
-                # find the locations where entity 'b' is mentioned
-                # b = [(m.start(), m.end())  for m in re.finditer(sn[1], articles[k]["maintext"])]
+                #Filter out cases where one name encompasses another
+                a = []
+                for span_a in a_unf:
+                    count = 0
+                    for span_b in b_unf:
+                        #Check if the matches for a are included in the matches found in b, if yes ignore those -> Example: comp a Suzuki's match is included in comp b Maruti Suzuki India's match
+                        if span_a.span()[0] >= span_b.span()[0] and span_a.span()[1] <= span_b.span()[1]:
+                            count +=1
+                    if count==0:
+                        a.append(span_a.span()) 
+                a = np.unique(np.array(a)).reshape(-1,2)
 
-                # using the entity recognition
+                b = []
+                for span_b in b_unf:
+                    count = 0
+                    for span_a in a_unf:
+                        #Check if the matches for b are included in the matches found in a, if yes ignore those
+                        if span_b.span()[0] >= span_a.span()[0] and span_b.span()[1] <= span_a.span()[1]:
+                            count +=1
+                    if count==0:
+                        b.append(span_b.span())
+                b = np.unique(np.array(b)).reshape(-1,2)
 
-                # b = [(ent.start_char, ent.end_char) for ent in doc.ents if ent.text == sn[1]]
-                b = [(ent.start_char, ent.end_char) for ent in doc.ents if re.search(f"^{sn[1]}", ent.text)]
-                b = np.array(b)
+                #Check if either a or b is empty
+                if len(np.squeeze(a)) == 0:
+                    raise Exception(sn[0]," not found, most likely it was included in the other company name")
+                if len(np.squeeze(b)) == 0:
+                    raise Exception(sn[1]," not found, most likely it was included in the other company name")
 
                 # find points in the text to connect the two, via sentence
-                start_pts, names = get_start_end(a=a[:,0], b=b[:,0], aname=sn[0], bname=sn[1])
-                end_pts, names = get_start_end(a[:,1], b[:,1], aname=sn[0], bname=sn[1])
+                # storing long names instead of short names
+                start_pts, names = get_start_end(a=a[:,0], b=b[:,0], aname=ln[0], bname=ln[1])
+                end_pts, names = get_start_end(a[:,1], b[:,1], aname=ln[0], bname=ln[1])
+
             except Exception as e:
                 print(e)
-                investigate.append([k, sn])
+                if k in errorlog.keys():
+                    errorlog[k] += [cp]
+                else:
+                    errorlog[k] = [cp]
 
             assert len(start_pts) == len(end_pts), \
                 "starting points and end points not to the, expect them to be"
@@ -438,13 +520,37 @@ if __name__ == "__main__":
                     # full_sentence = left + nme[0] + middle + nme[1] + right
 
                     # store results in a list
-                    out.append([nme[0], nme[1], left, middle, right, k])
+                    out.append([nme[0], nme[1], left, middle, right, k, label])
+    # End of loop to create examples
+    # ----
 
-    df = pd.DataFrame(out, columns=["entity1", "entity2", "left", "middle", "right", "article"])
+    #Store Dataframe
+    df = pd.DataFrame(out, columns=["entity1", "entity2", "left", "middle", "right", "article","label"])
+    df.to_csv(get_data_path("example_inputs_pos_and_neg.tsv"), sep="\t", index=False)
 
-    df.to_csv(get_data_path("example_inputs.tsv"), sep="\t", index=False)
+    # ---
+    # Store in Format to be used in Stanford Notebooks
+    # ---
 
-    # doc = nlp("A complex-example,!")
+    #Creating a dataframe in the form required by the Coprus class
+    articles_final = pd.DataFrame()
+    #Bring DF in shape expected by Corpus class
+    articles_final.loc[:,["entity1","entity2","left","entity1",'middle','entity2','right',"left","entity1",'middle','entity2','right']] = df.loc[:,["entity1","entity2","left","entity1",'middle','entity2','right',"left","entity1",'middle','entity2','right']]
+    #Remove \n as this trips up the Corpus class
+    articles_final.replace("\n","",inplace=True)
+    articles_final.replace('(\n)','',regex=True,inplace=True)
+
+    #Store as TSV
+    articles_final.to_csv(get_data_path("example_inputs_long_names_with_neg.tsv"), sep="\t", index=False,header=False)
+
+    #Convert to GZ file
+    with open(get_data_path("example_inputs_long_names_with_neg.tsv"), 'rb') as src, gzip.open(get_data_path("example_inputs_long_names_with_neg.tsv.gz"), 'wb') as dst:
+        dst.writelines(src)
+    
+
+    ####Previous stuff
+
+    #doc = nlp("A complex-example,!")
     # print([token.text for token in doc])
     #
     # a = articles[keys[1]]
