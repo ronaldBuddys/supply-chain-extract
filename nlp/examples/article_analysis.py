@@ -203,6 +203,7 @@ if __name__ == "__main__":
     # TODO: refactor this - search for parents first
 
     # find all the articles that contain parent nane
+    print("searching for parent names")
     pname = vc["Parent Name"].unique()
     pdict = {}
     for i, pn in enumerate(pname):
@@ -303,7 +304,7 @@ if __name__ == "__main__":
     # - some of these were taken by counting suffixes occrances, removing those and repeating
     # - others were just a gues
     suffixes = ['Inc', 'Corp', 'Ltd', 'Co', 'PLC', 'SA', 'AG', 'LLC', 'NV', 'SE',
-                'ASA', 'Bhd', 'SpA', 'Association', 'Aerospace', 'AB', 'Oyj'] + \
+                'ASA', 'Bhd', 'SpA', 'Association', 'Aerospace', 'AB', 'Oyj', "Plc"] + \
                ['Co', 'Holdings', 'Group', 'Technologies', 'International',
                 'Systems', 'Energy', 'Communications', 'Airlines', 'Motor',
                 'Technology', 'Oil', 'Motors', 'Corp', 'Industries', 'Steel',
@@ -336,6 +337,17 @@ if __name__ == "__main__":
     short_name_map["Amazon.com Inc"] = "Amazon"
     short_name_map["General Electric Co"] = "GE"
     short_name_map["Lockheed Martin Corp"] = "Lockheed"
+
+    # add to database - this should be one off
+    # - it is not efficient to search names one at a time but with small number shouldn't be a problem
+    # for k, v in short_name_map.items():
+    #     filter = {"long_name": k}
+    #     lsname = client["news_articles"]["long_to_short_name"].find_one(filter)
+    #
+    #     # if name has not be checked add guess from above
+    #     if not lsname["checked"]:
+    #         client["news_articles"]["long_to_short_name"].update_one(filter,
+    #                                                                  update={"$addToSet": {"short_names": v}})
 
     c_count["short_name"] = c_count["name"].map(short_name_map)
 
