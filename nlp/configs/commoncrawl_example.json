@@ -8,7 +8,7 @@
     "after making adjustments below this file can be saved as nlp/configs/commoncrawl.json",
     "the *valid_hosts list specifies which sources to extract articles from",
     "if my_delete_warc_after_extraction is false the warc file will remain on file system",
-    "these files average 1.1GB, with a day having about 16 of these",
+    "these files average 1.1GB, with a day having about 16 of these"
   ],
   "my_local_download_dir_warc": "<path_to_where_warc_files_should_be_saved>/cc_download_warc",
   "my_local_download_dir_article": "<path_to_where_articles_will_be_extracted_to>/cc_download_articles",
