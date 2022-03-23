@@ -1,0 +1,28 @@
+{
+  "comment": [
+    "change my_local_download* to be somewhere on your file system",
+    "a config like this can be provided as an argument to news_please.py, i.e.:",
+    "$python -m nlp.examples.news_please <path_to_config>",
+    "if file not provide as argument script will use nlp/configs/commoncrawl.json",
+    "if above file is not present, it will through an error",
+    "after making adjustments below this file can be saved as nlp/configs/commoncrawl.json",
+    "the *valid_hosts list specifies which sources to extract articles from",
+    "if my_delete_warc_after_extraction is false the warc file will remain on file system",
+    "these files average 1.1GB, with a day having about 16 of these",
+  ],
+  "my_local_download_dir_warc": "<path_to_where_warc_files_should_be_saved>/cc_download_warc",
+  "my_local_download_dir_article": "<path_to_where_articles_will_be_extracted_to>/cc_download_articles",
+  "my_filter_valid_hosts": [
+    "uk.reuters.com",
+    "www.reuters.com",
+    "in.reuters.com",
+    "www.businessinsider.com",
+    "www.wsj.com",
+    "www.marketwatch.com",
+    "www.theglobeandmail.com",
+    "www.bloomberg.com",
+    "www.benzinga.com",
+    "seekingalpha.com"
+  ],
+  "my_delete_warc_after_extraction": true
+}
