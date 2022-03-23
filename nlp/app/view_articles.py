@@ -79,6 +79,7 @@ unames_list_dict = [{'label': i, 'value': i} for i in unique_names]
 # titles = art_db["articles"].find_one(filter={"names_in_text": {"$in": ['3M Co']}},
 #                                      projection={"title": 1})
 
+
 # ---
 # One off - should move this else where
 # ---
@@ -91,6 +92,14 @@ unames_list_dict = [{'label': i, 'value': i} for i in unique_names]
 #                for ln in unique_names]
 #
 # art_db["long_to_short_name"].bulk_write(bulk_update)
+# add a 'checked' field to long to short name documents
+# art_db["long_to_short_name"].update_many({"short_names": {"$not": {"$size": 0}}},
+#                                          update={"$set": {"checked": True}})
+#
+# art_db["long_to_short_name"].update_many({"short_names":  {"$size": 0}},
+#                                          update={"$set": {"checked": False}})
+
+
 
 # ---
 # helper functions
@@ -172,7 +181,7 @@ app.layout = html.Div([
             # ----
             html.H3("Select Company"),
             # radio dial to only select those with no short names
-            html.Label('Show only those missing Short Names?', style={'color': text_color, "font-weight": "bold"}    ),
+            html.Label('Show only those un-checked?', style={'color': text_color, "font-weight": "bold"}    ),
             dcc.RadioItems(
                 options=[{'label': i, 'value': i} for i in ['True', 'False']],
                 id='missing_short_names',
@@ -198,6 +207,9 @@ app.layout = html.Div([
             html.Label("Short Names:"),
             html.Div(children="", id="short_name_values", style={"font-weight": "bold"}),
             # add - short name
+            # hidden div - need for output for confirm short name button click
+            html.Div(children="", id="is_checked_status"),#, style={'display': 'none'}),
+            html.Button("Confirm Short Name(s)", id="confirm_shortnames_btn"),
             html.Br(),
             html.Label("Add"),
             dcc.Input(id="add_short_input",
@@ -267,6 +279,7 @@ app.layout = html.Div([
 # ----
 # callbacks
 # ----
+
 @app.callback([Output('long_name_dropdown', 'options'),
                Output('number_of_companies_to_select_from', 'children')],
               Input('missing_short_names', 'value'))
@@ -279,7 +292,7 @@ def show_only_long_names_without_short_name(missing_short_names):
         # get only the long_names that have short_name array length = 0
         out = [{"label": i["long_name"], "value": i["long_name"]}
                for i in
-               art_db["long_to_short_name"].find(filter={"short_names": {"$size": 0}})]
+               art_db["long_to_short_name"].find(filter={"checked": False})]
         return out, f"Number of companies in list: {len(out)}"
     else:
         #
@@ -350,6 +363,44 @@ def show_short_names(long_name, add_short_name, remove_button, names_to_remove):
                 ""
 
 
+@app.callback(Output("is_checked_status", "children"),
+              [Input("confirm_shortnames_btn", "n_clicks"),
+              Input('long_name_dropdown', 'value')])
+def confirm_short_names(conf_btn, long_name):
+    # change the 'checked' field in long_to_short_name doc to True
+
+    # determine which Input triggered callback
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = 'No clicks yet'
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if conf_btn is None:
+        raise PreventUpdate
+
+    if long_name is None:
+        raise PreventUpdate
+
+    if long_name == "":
+        raise PreventUpdate
+
+    if button_id == "confirm_shortnames_btn":
+        print("confirming short names")
+
+        # art_db["long_to_short_name"]
+        art_db["long_to_short_name"].update_many({"long_name": long_name},
+                                                 update={"$set": {"checked": True}})
+        output = "short name(s) confirmed"
+    elif button_id == "long_name_dropdown":
+        tmp = art_db["long_to_short_name"].find_one({"long_name": long_name})
+        output = "short name(s) confirmed" if tmp["checked"] else "short name(s) UNCONFIRMED"
+    else:
+        # this should never be the case
+        output = "unknown input triggered callback confirm_short_names"
+
+    return output
 
 @app.callback([Output('title_value', 'children'),
                Output('source_value', 'children'),
