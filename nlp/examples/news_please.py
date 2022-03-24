@@ -138,7 +138,10 @@ def get_config(sysargv, argpos=1, default="commoncrawl.json", verbose=True):
 
 
 def get_unfetched_commoncrawl_files(art_db, use_dates=None):
-    ccf = pd.DataFrame(list(art_db["common_crawl_files"].find()))
+    filter = {}
+    projection = {"name": 1, "fetched": 1, "date": 1}
+    _ = art_db["common_crawl_files"].find(filter,  projection)
+    ccf = pd.DataFrame(list(_))
     ccf["date"] = pd.to_datetime(ccf["date"])
 
     # select subset of dates - Last Update Date
@@ -152,21 +155,27 @@ def get_unfetched_commoncrawl_files(art_db, use_dates=None):
 
 if __name__ == "__main__":
 
-    pd.set_option("display.max_columns", 200)
-    # ----
-    # common crawl config
-    # ----
-
+    # TODO: clean up this file - remove
     # TODO: require data_dir exists
     # TODO: allow parameters to be set from config
     # TODO: all config to be passed in as an argument instead of reading from package
     # TODO: wrap up to allow for better try, except
 
+    pd.set_option("display.max_columns", 200)
+    # ----
+    # common crawl config
+    # ----
+
+    # read in configuration file
     cc_config = get_config(sysargv=sys.argv, argpos=1, verbose=True)
 
     print("*" * 50)
     print("using config file")
     print(json.dumps(cc_config, indent=4))
+
+    # use subset of all date (i.e. only the 'updates' found in the value chain data)
+    use_subset_of_dates = cc_config.get("only_use_dates_from_supply_chain_data", False)
+
 
     # download_dir = cc_config.get("download_dir", None)
     #
@@ -193,22 +202,29 @@ if __name__ == "__main__":
     art_db = client["news_articles"]
 
     # get all entries from value chain data
+    # TODO: select only relevant 'columns' using a 'projection' in the find()
+    t0 = time.time()
     vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
+    t1 = time.time()
 
     # ----
-    # filter dates to fetch
+    # filter dates to fetch - i.e. get update_dates
     # ----
 
-    # TODO: let these selection criteria be specified in config
-    # filter only those that are after
-    vc["Last Update Date"] = pd.to_datetime(vc["Last Update Date"])
-    # CC-NEWS available from August 2016?
-    vc = vc.loc[vc["Last Update Date"] >= "2016-10-01"]
-    # take only the high confidence entries
-    vc = vc.loc[vc["Confidence Score (%)"] > 0.95]
+    if use_subset_of_dates:
+        # TODO: let these selection criteria be specified in config
+        # filter only those that are after
+        vc["Last Update Date"] = pd.to_datetime(vc["Last Update Date"])
+        # CC-NEWS available from August 2016?
+        vc = vc.loc[vc["Last Update Date"] >= "2016-10-01"]
+        # take only the high confidence entries
+        vc = vc.loc[vc["Confidence Score (%)"] > 0.95]
 
-    # get the update dates
-    update_dates = vc["Last Update Date"].unique()
+        # get the update dates
+        update_dates = vc["Last Update Date"].unique()
+    # if update_dates is set to None will search for all dates
+    else:
+        update_dates = None
 
     # ----
     # get commoncrawl files that can be downloaded
@@ -229,10 +245,13 @@ if __name__ == "__main__":
     # update_dates = update_dates[~np.in1d(update_dates, fetched_dates)]
 
     counter = 0
-    max_count = np.inf
+    max_count = len(ccf)
     # TODO: this can be tidied up
     while len(ccf) > 0:
         counter += 1
+
+        # get the current date
+        todays_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
         # pick a random date - to reduce chances of two people fetching same
         # date at same time
@@ -240,21 +259,24 @@ if __name__ == "__main__":
         # ---
         # convert date to fetched to datetime
         # ---
-
-        ran_date = np.random.choice(update_dates, 1)
-        # TODO: get stackoverflow ref
-        start_date = datetime.datetime.utcfromtimestamp(int(ran_date)/1e9)
-
-        date_str = pd.to_datetime(update_dates[0]).strftime("%Y-%m-%d")
-
-        # --
-        # add / update document for this date specifying started, but did not finish
-        # --
-        # TODO: include the names/websites which were searched/filtered for?
-        doc = {"date": date_str, "started": True, "finished": False}
-        client["news_articles"]["fetched_dates"].update_one(filter={"date": date_str},
-                                                           update={"$set": doc},
-                                                           upsert=True)
+        #
+        # if update_dates is None:
+        #     ran_date = np.random.choice(ccf['date'].values, 1)
+        # else:
+        #     ran_date = np.random.choice(update_dates, 1)
+        # # TODO: get stackoverflow ref
+        # start_date = datetime.datetime.utcfromtimestamp(int(ran_date)/1e9)
+        #
+        # date_str = pd.to_datetime(update_dates[0]).strftime("%Y-%m-%d")
+        #
+        # # --
+        # # add / update document for this date specifying started, but did not finish
+        # # --
+        # # TODO: include the names/websites which were searched/filtered for?
+        # doc = {"date": date_str, "started": True, "finished": False}
+        # client["news_articles"]["fetched_dates"].update_one(filter={"date": date_str},
+        #                                                     update={"$set": doc},
+        #                                                     upsert=True)
 
         # this was taken from new-please repo: news-please/newsplease/examples/commoncrawl_crawler.py
         # TODO: have the below parameters specified in a config
@@ -269,7 +291,7 @@ if __name__ == "__main__":
 
         # hosts (if None or empty list, any host is OK)
         my_filter_valid_hosts = cc_config.get("my_filter_valid_hosts",
-                                            ["www.reuters.com", "uk.reuters.com"])
+                                              ["www.reuters.com", "uk.reuters.com"])
         print("using my_filter_valid_hosts")
         print(my_filter_valid_hosts)
 
@@ -284,8 +306,8 @@ if __name__ == "__main__":
         # articles from that date. Instead, you must assume that the warc file can contain articles
         # from ANY time before the warc file was published, e.g., a warc file published in August 2020
         # may contain news articles from December 2016.
-        my_warc_files_start_date = start_date  # example: datetime.datetime(2020, 3, 1)
-        my_warc_files_end_date = start_date + datetime.timedelta(1) # example: datetime.datetime(2020, 3, 2)
+        # my_warc_files_start_date = start_date  # example: datetime.datetime(2020, 3, 1)
+        # my_warc_files_end_date = start_date + datetime.timedelta(1) # example: datetime.datetime(2020, 3, 2)
         # if date filtering is strict and news-please could not detect the date of an article, the article will be discarded
         my_filter_strict_date = cc_config.get("my_filter_strict_date", True)
         # if True, the script checks whether a file has been downloaded already and uses that file instead of downloading
@@ -369,7 +391,15 @@ if __name__ == "__main__":
                                           log_pathname_fully_extracted_warcs=__log_pathname_fully_extracted_warcs,
                                           extractor_cls=extractor_cls,
                                           fetch_images=my_fetch_images)
+
+            # add the date fetched
+            art_db["common_crawl_files"].update_one(filter={"name": warc_file},
+                                                    update={"$set": {"fetched_date": todays_date}})
+
         except Exception as e:
+            print("-"*50)
+            print("-"*50)
+
             print(f"error occured\n will state current warc_file: {warc_file} fetched=False")
             print(e)
 
@@ -377,6 +407,7 @@ if __name__ == "__main__":
             art_db["common_crawl_files"].update_one(filter={"name": warc_file},
                                                     update={"$set": {"fetched": False}})
 
+            # assert False, "broke on purpose (remove this line)"
 
         # -----
         # update doc in database indicating finished searching for that date
@@ -404,7 +435,7 @@ if __name__ == "__main__":
         # get the commoncrawl files that have not been fetched
         ccf = get_unfetched_commoncrawl_files(art_db, use_dates=update_dates)
 
-
+        # if counter happens to exceed max count then set ccf to [] - which will end loop
         if counter >= max_count:
             ccf = []
 
