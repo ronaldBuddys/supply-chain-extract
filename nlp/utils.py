@@ -4,6 +4,7 @@ import os.path
 
 from pymongo import MongoClient
 import pandas as pd
+import numpy as np
 import json
 import re
 from OpenPermID import OpenPermID
@@ -92,6 +93,7 @@ def make_reg_tree(c, cur_node=1, max_node=1):
         }
         return _
 
+
 def get_list_from_tree(text, rtree, out=None):
 
     if out is None:
@@ -105,6 +107,52 @@ def get_list_from_tree(text, rtree, out=None):
             if re.search(k, text):
                 out += v
     return out
+
+
+def remove_suffix(name, suffixes):
+    """helper function for niave_long_to_short_name"""
+    for s in suffixes:
+        # regex: space, word, space then any character to end
+        # or
+        name = re.sub(f" {s} .*$| {s}$", "", name)
+    return name
+
+
+def niave_long_to_short_name(all_names):
+    """return a dictionary mapping long name to a short name
+    using a rules based approach"""
+
+    # TODO: short_name_map needs to be reviewed!, preferable to use some NLP package (spacy?)
+    # This is pretty hard coded list of company name 'suffixes'
+    # - some of these were taken by counting suffixes occrances, removing those and repeating
+    # - others were just a gues
+    suffixes = ['Inc', 'Corp', 'Ltd', 'Co', 'PLC', 'SA', 'AG', 'LLC', 'NV', 'SE',
+                'ASA', 'Bhd', 'SpA', 'Association', 'Aerospace', 'AB', 'Oyj', "Plc"] + \
+               ['Co', 'Holdings', 'Group', 'Technologies', 'International',
+                'Systems', 'Energy', 'Communications', 'Airlines', 'Motor',
+                'Technology', 'Oil', 'Motors', 'Corp', 'Industries', 'Steel',
+                'Holding', 'Airways', 'Aviation', 'Automotive', 'Networks',
+                'Electronics', 'Digital', 'BP', 'Electric', 'Aircraft',
+                'US', 'Mobile', 'Software', 'Broadcom', 'Brands',
+                'Service', 'Semiconductor', 'Petroleum'] + \
+               ['Platforms', 'Precision', 'Industry', 'AeroSystems', 'Media', 'Petrochemical']
+
+
+
+    #  'International Business Machines Corp' -> 'IBM'
+    # 'News Corp' -> 'News Corp'
+    # NOTE: if it starts with air it needs two words
+    short_name = pd.DataFrame([(n, remove_suffix(n, suffixes)) for n in all_names],
+                              columns=["name", "short"])
+    # look at longer names
+    short_name["len"] = [len(n) for n in short_name["short"]]
+    short_name.sort_values("len", ascending=False, inplace=True)
+
+    # making a mapping dictionary
+    short_name_map = {i[0]: i[1] for i in zip(short_name["name"], short_name["short"])}
+
+    return short_name_map
+
 
 if __name__ == "__main__":
 
