@@ -293,10 +293,10 @@ def show_only_long_names_without_short_name(missing_short_names):
         out = [{"label": i["long_name"], "value": i["long_name"]}
                for i in
                art_db["long_to_short_name"].find(filter={"checked": False})]
-        return out, f"Number of companies in list: {len(out)}"
+        return out, f"# of companies in list: {len(out)}"
     else:
         #
-        return [{'label': i, 'value': i} for i in unique_names],  f"Number of companies in list: {len(unique_names)}"
+        return [{'label': i, 'value': i} for i in unique_names],  f"# of companies in list: {len(unique_names)}"
 
 # given the selected long name, show the short names
 @app.callback([Output('short_name_values', 'children'),
