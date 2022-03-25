@@ -154,6 +154,32 @@ def niave_long_to_short_name(all_names):
     return short_name_map
 
 
+def get_knowledge_base_from_value_chain_data(vc):
+
+    # select a subset of value chain data to make knowledge base
+    kb = vc[["Parent Name", "Company Name", "Relationship"]].copy(True)
+    kb.rename(columns={"Parent Name": "entity1", "Company Name": "entity2", "Relationship": "rel"},
+              inplace=True)
+    c = kb.loc[kb["rel"] == "Customer"].copy(True)
+    s = kb.loc[kb["rel"] == "Supplier"].copy(True)
+
+    # switch customer labels around
+    c.rename(columns={"entity1": "entity2", "entity2": "entity1"}, inplace=True)
+    c['rel'] = "Supplier"
+
+    # combine
+    kb = pd.concat([s, c])
+
+    # drop duplicates
+    kb = kb.drop_duplicates()
+
+    # drop any entries where company supplies self
+    kb = kb.loc[kb["entity1"] != kb["entity2"]]
+
+    return kb
+
+
+
 if __name__ == "__main__":
 
     # search for company information
