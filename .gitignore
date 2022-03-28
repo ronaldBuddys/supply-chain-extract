@@ -1,5 +1,7 @@
 # large dataset
 nlp/data/cc_download_articles/*
+nlp/data/articles.json
+nlp/data/full_sentences.json
 
 # ignore contents of configs
 nlp/configs/*.json
