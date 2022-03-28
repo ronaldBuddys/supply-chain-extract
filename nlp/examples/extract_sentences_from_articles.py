@@ -30,7 +30,7 @@ except NameError:
     print('issue with adding to path, probably due to __file__ not being defined')
     src_path = None
 
-from nlp.utils import get_database, niave_long_to_short_name
+from nlp.utils import get_database, niave_long_to_short_name, get_knowledge_base_from_value_chain_data
 from nlp import get_configs_path, get_data_path
 
 
@@ -60,31 +60,6 @@ def get_start_end(a, b, aname="a", bname="b"):
                 names.append((bname, aname))
 
     return res, names
-
-
-def get_knowledge_base_from_value_chain_data(vc):
-
-    # select a subset of value chain data to make knowledge base
-    kb = vc[["Parent Name", "Company Name", "Relationship"]].copy(True)
-    kb.rename(columns={"Parent Name": "entity1", "Company Name": "entity2", "Relationship": "rel"},
-              inplace=True)
-    c = kb.loc[kb["rel"] == "Customer"].copy(True)
-    s = kb.loc[kb["rel"] == "Supplier"].copy(True)
-
-    # switch customer labels around
-    c.rename(columns={"entity1": "entity2", "entity2": "entity1"}, inplace=True)
-    c['rel'] = "Supplier"
-
-    # combine
-    kb = pd.concat([s, c])
-
-    # drop duplicates
-    kb = kb.drop_duplicates()
-
-    # drop any entries where company supplies self
-    kb = kb.loc[kb["entity1"] != kb["entity2"]]
-
-    return kb
 
 
 def correct_names_in_main_text(articles):

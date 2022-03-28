@@ -60,10 +60,6 @@ if __name__ == "__main__":
                           password=mdb_cred["password"],
                           clustername=mdb_cred["cluster_name"])
 
-    # --
-    # get knowledge base
-    # --
-
     # ---
     # read in value chain data / knowledge base
     # ---
@@ -90,7 +86,7 @@ if __name__ == "__main__":
     # read in article data - for reference
     # ---
 
-    # read proof of concept data
+    # get locally stored data
     assert os.path.exists(get_data_path("articles.json")), \
         f"{get_data_path('articles.json')} does not exist, get from the google drive and save locally"
 
@@ -171,7 +167,9 @@ if __name__ == "__main__":
     sentence_per_triple['full_sentence'].mean()
 
 
-    #
+    # may want to consider:
+    # - articles with low(ish) number of companies
+    # - sentences that are short
 
 
     # np.quantile(sent_per_art['full_sentence'].values, q=0.99)
