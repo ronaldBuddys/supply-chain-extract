@@ -11,16 +11,16 @@ import itertools
 from collections import OrderedDict
 
 
-from weak_labels.labeling import labeling_function
-from weak_labels.labeling import PandasLFApplier
-from weak_labels.augmentation import PandasTFApplier
-from weak_labels.labeling.model import MajorityLabelVoter
-from weak_labels.labeling.model import LabelModel
-from weak_labels.labeling import LFAnalysis
-from weak_labels.labeling import LabelingFunction
-from weak_labels.augmentation import MeanFieldPolicy
-from weak_labels.labeling import filter_unlabeled_dataframe
-from weak_labels.augmentation import RandomPolicy
+from snorkel.labeling import labeling_function
+from snorkel.labeling import PandasLFApplier
+from snorkel.augmentation import PandasTFApplier
+from snorkel.labeling.model import MajorityLabelVoter
+from snorkel.labeling.model import LabelModel
+from snorkel.labeling import LFAnalysis
+from snorkel.labeling import LabelingFunction
+from snorkel.augmentation import MeanFieldPolicy
+from snorkel.labeling import filter_unlabeled_dataframe
+from snorkel.augmentation import RandomPolicy
 
 import nltk
 from nltk.corpus import wordnet as wn
@@ -313,7 +313,7 @@ if __name__ == "__main__":
 
     @labeling_function()
     def regex_customer(x):
-        return SUPPLIER if re.search(r" customer | client ", x.text, flags=re.I) else ABSTAIN
+        return SUPPLIER if re.search(r" customer | client", x.text, flags=re.I) else ABSTAIN
 
     @labeling_function()
     def regex_make(x):
@@ -342,6 +342,7 @@ if __name__ == "__main__":
     @labeling_function()
     def regex_order(x):
         return SUPPLIER if re.search(r" order", x.text, flags=re.I) else ABSTAIN
+
 
 
     @labeling_function()
@@ -461,8 +462,8 @@ if __name__ == "__main__":
 
     # https://www.snorkel.org/use-cases/02-spam-data-augmentation-tutorial
     # import names
-    from weak_labels.augmentation import transformation_function
-    from weak_labels.preprocess.nlp import SpacyPreprocessor
+    from snorkel.augmentation import transformation_function
+    from snorkel.preprocess.nlp import SpacyPreprocessor
 
     spacy = SpacyPreprocessor(text_field="text", doc_field="doc", memoize=True)
 
