@@ -157,7 +157,7 @@ def niave_long_to_short_name(all_names):
 def get_knowledge_base_from_value_chain_data(vc):
 
     # select a subset of value chain data to make knowledge base
-    kb = vc[["Parent Name", "Company Name", "Relationship"]].copy(True)
+    kb = vc[["Parent Name", "Company Name", "Relationship", "Confidence Score (%)"]].copy(True)
     kb.rename(columns={"Parent Name": "entity1", "Company Name": "entity2", "Relationship": "rel"},
               inplace=True)
     c = kb.loc[kb["rel"] == "Customer"].copy(True)
