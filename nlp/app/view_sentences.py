@@ -206,6 +206,18 @@ act_after_label = ["None", "Next", "Prev", "Random"]
 act_after_label_opts = [{'label': i, "value": i} for i in act_after_label]
 
 
+# --
+# reminder text - with colors added
+# --
+question_text = 'Does [entity2] supply {entity1} ?'
+e1_color = [{'word': "{entity1}", "style": {"backgroundColor": "#6190ff", 'display': 'inline-block'} }]
+e2_color = [{'word': "[entity2]", "style": {"backgroundColor": "yellow", 'display': 'inline-block'} }]
+
+question_text = text_to_dash_html(question_text,
+                                  color_text = e1_color+e2_color)
+# formated_text = text_to_dash_html(cur_sent,
+#                                   color_text)
+
 app.layout = html.Div([
 
     # Header
@@ -221,8 +233,8 @@ app.layout = html.Div([
         html.H3(children='Main Selection',
                 style={'color': text_color, 'textAlign': 'left', "font-weight": "bold", "display": 'inline-block'},
                 className="threeColumns"),
-        html.H3(children='Does [entity2] supply {entity1} ?',
-                style={'color': "pink", "margin-left": "15px", "font-weight": "bold", "display": 'inline-block'},
+        html.H3(children=question_text,
+                style={"margin-left": "15px", "font-weight": "bold", "display": 'inline-block'},
                 className="fiveColumns"),
     ], className='row'),
 
@@ -361,8 +373,8 @@ app.layout = html.Div([
         # -
         html.H6(children='Labelling',
                 style={'color': text_color, "font-weight": "bold", "display": 'inline-block'}),
-        html.H6(children='Does [entity2] supply {entity1}?',
-                style={'color': "pink", "margin-left": "15px", "font-weight": "bold",  "display": 'inline-block'}),
+        html.H6(children=question_text,
+                style={"margin-left": "15px", "font-weight": "bold",  "display": 'inline-block'}),
     ], className="row"),
 
     html.Div([
@@ -620,16 +632,6 @@ def available_titles(e1, e2, rel, wl, ns, ep,
                 # TODO: if picking random need to update pc and ps
                 cr_idx = np.random.choice(np.arange(len(tmp)))
 
-            # get the gold label from database
-            cur_id = tmp.iloc[int(cr_idx)]["id"]
-            _ = art_db["gold_labels"].find_one(filter={"label_id": cur_id})
-            # could be None if it's a new sentence
-            if _ is None:
-                glabel = None
-            else:
-                glabel = _.get("gold_label", None)
-
-
     # page_count = (len(tmp) // ps)
 
     # select sentence
@@ -638,17 +640,45 @@ def available_titles(e1, e2, rel, wl, ns, ep,
     # current sentence id
     # cur_id = tmp.iloc[int(cr_idx)]["id"]
 
-    if glabel is None:
-        glabel = "no label provided yet"
+    # get the gold label from database
+    cur_id = tmp.iloc[int(cr_idx)]["id"]
+    _ = art_db["gold_labels"].find_one(filter={"label_id": cur_id})
 
+    # TODO: fix this
+    _ = {} if _ is None else _
+    glabel = _.get("gold_label", "no label provided yet")
+    glabel = "no label provided yet" if glabel is None else glabel
+
+    print(f'glabel: {glabel}')
     # print(f"current page: {pc}")
 
     # select_range = int(cr_idx) + np.arange(pc*ps, (pc + 1)*ps)
     select_range = int(cr_idx)
 
+    # ---
+    # format text
+    # ---
+
+    e1 = tmp.iloc[int(cr_idx)]["entity1"]
+    e2 = tmp.iloc[int(cr_idx)]["entity2"]
+
+    # put brackets around entity
+    e1_color = [{'word': "{%s}" % e1, "style": {"backgroundColor": "#6190ff", 'display': 'inline-block'} }]
+    e2_color = [{'word': "[%s]" % e2, "style": {"backgroundColor": "yellow", 'display': 'inline-block'} }]
+
+    # re.sub(cur_sent
+    cur_sent = re.sub(e1, "{%s}" % e1, cur_sent)
+    cur_sent = re.sub(e2, "[%s]" % e2, cur_sent)
+
+    formated_text = text_to_dash_html(cur_sent,
+                                      color_text=e1_color+e2_color)
+
+
+
+
     # page_count, \
     return tmp.iloc[[select_range]][info_col].to_dict('records'), \
-           cur_sent,  \
+           formated_text,  \
            str(cr_idx), \
            glabel,\
            glc
