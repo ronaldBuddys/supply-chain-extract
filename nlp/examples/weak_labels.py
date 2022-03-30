@@ -1,7 +1,5 @@
 # use snorkel to establish rules for making weak labels
 
-
-
 import json
 import os
 import re
@@ -62,9 +60,15 @@ if __name__ == "__main__":
     # parameters
     # ----
 
+    max_sentence_number = 3
+
+    max_characters = 500
+
+    min_conf_score_for_supplier = 0.9
+
     # if True will read articles from local json file: data/articles.json
     # - this can reduce burden on the remote database (network usage)
-    read_local_articles = True
+    # read_local_articles = True
 
     # ----
     # connect to database
@@ -82,29 +86,38 @@ if __name__ == "__main__":
     # read in value chain data / knowledge base
     # ---
 
+    t0 = time.time()
     vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
+    t1 = time.time()
 
     # there are some missing company names? exclude those
-    vc = vc.loc[~pd.isnull(vc['Company Name'])]
+    # vc = vc.loc[~pd.isnull(vc['Company Name'])]
+
+    # read in locally stored valued chains
+    vc = pd.read_csv(get_data_path("VCHAINS.csv"))
 
     kb = get_knowledge_base_from_value_chain_data(vc)
 
     # for now no longer need connection
-    client.close()
+    # client.close()
 
     # ---
     # read in full_sentences store locally
     # ---
+    # sent_file = get_data_path('full_sentences.json')
+    sent_file = get_data_path("processed_sentences.json")
 
-    assert os.path.exists(get_data_path("full_sentences.json")), \
-        f"looks like: {get_data_path('full_sentences.json')}, copy from google drive data/full_sentences.json"
+    assert os.path.exists(sent_file), \
+        f"looks like: {sent_file}, copy from google drive data/{os.path.basename(sent_file)}"
 
-    with open(get_data_path("full_sentences.json"), "r") as f:
+    with open(sent_file, "r") as f:
         full_sents = json.load(f)
 
     # ---
     # store data in dataframe - to allow for high level summary
     # ---
+
+    # TODO: this could be removed, it looks like secondary analysis
 
     df = pd.DataFrame(full_sents)
 
@@ -134,12 +147,13 @@ if __name__ == "__main__":
     # Filtering
     # ----
 
+    # TODO: consider if this should be done somewhere else - i.e. seperate to this
     # filtering
-    df = df.loc[df['num_sentence'] <= 3]
+    df = df.loc[df['num_sentence'] <= max_sentence_number]
 
     # add sentence length
     df["num_chars"] = [len(i) for i in df['full_sentence']]
-    df = df.loc[df['num_chars'] <= 500]
+    df = df.loc[df['num_chars'] <= max_characters]
 
     # rename full sentence to text
     df.rename(columns={"full_sentence": "text"}, inplace=True)
@@ -163,14 +177,14 @@ if __name__ == "__main__":
 
     # HACK: review - if confidence is not high enough set relation ship to NA
     # - so we only considered most 'likely' supplier relationships
-    df.loc[df['Confidence Score (%)'] < 0.9, "relation"] = "NA"
+    # df.loc[df['Confidence Score (%)'] < min_conf_score_for_supplier, "relation"] = "NA"
 
     # NOTE: this is not really needed
     # TODO: validate this
     # remove text inbetween () and {} - including those brackets
-    df["text"] = [re.sub("[\{\(].*?[\}\)]", "", i) for i in df["text"]]
+    # df["text"] = [re.sub("[\{\(].*?[\}\)]", "", i) for i in df["text"]]
     # replace any double space with single
-    df["text"] = [re.sub("  ", " ", i) for i in df["text"]]
+    # df["text"] = [re.sub("  ", " ", i) for i in df["text"]]
 
     # add {} around entity 1
     df["text"] = [re.sub(row['entity1'], "{%s}" % row['entity1'], row['text'])
@@ -182,7 +196,6 @@ if __name__ == "__main__":
     # --
     # add some more metrics
     # --
-
 
     plt.plot(np.sort(df["num_chars"].values)[::-1])
     plt.title("number of characters in text")
@@ -211,7 +224,7 @@ if __name__ == "__main__":
     use_articles = sent_per_art.loc[sent_per_art['text'] <= q_art, "article"].values
 
     # take subset of sentences
-    df = df.loc[df['article'].isin(use_articles)]
+    # df = df.loc[df['article'].isin(use_articles)]
 
     # ----
     # sentence 'size'
@@ -244,8 +257,11 @@ if __name__ == "__main__":
     e2_count.rename(columns={"text": "count"}, inplace=True)
     e2_count.sort_values("count", ascending=False, inplace=True)
 
-    e2_count_quantile = np.quantile(e2_count['count'].values, q=0.8)
+    e2_count_quantile = np.quantile(e2_count['count'].values, q=0.6)
+
+
     plt.plot(np.cumsum(e2_count['count'].values)/e2_count['count'].values.sum())
+    plt.title("sentences per each entity2, cumulative ")
     plt.show()
 
     df = df.merge(e2_count,
@@ -254,23 +270,44 @@ if __name__ == "__main__":
     df.rename(columns={"count": "e2_count"}, inplace=True)
 
     # ---
-    # get total sentence count - by counting entity1 as well
+    # get entity pair count
     # ---
 
-    e1_count = pd.pivot_table(df.loc[df['relation'] == "Supplier"],
-                              index="entity1",
-                              values="text",
-                              aggfunc="count").reset_index()
-    e1_count.rename(columns={"text": "count"}, inplace=True)
-    e1_count.sort_values("count", ascending=False, inplace=True)
+    e_pair = pd.pivot_table(df,
+                            index=["entity1", "entity2", "relation"],
+                            values="text",
+                            aggfunc="count").reset_index()
+    e_pair.sort_values("text", ascending=False, inplace=True)
+    e_pair.rename(columns={'text': "epair_count"}, inplace=True)
 
-    df = df.merge(e1_count,
-                  on="entity1",
+    # entity pair quantile - for suppliers
+    # - to help identify lesser mentioned pairs, which the assumption
+    epair_q = np.quantile(e_pair.loc[e_pair["relation"] == "Supplier", 'epair_count'].values, q=0.6)
+
+    # merge on the metric
+    df = df.merge(e_pair,
+                  on=["entity1", "entity2", "relation"],
                   how="left")
-    df.rename(columns={"count": "e1_count"}, inplace=True)
 
-    e1_count_q = np.quantile(e1_count['count'].values, q=0.8)
-    e2_count_q = np.quantile(e2_count['count'].values, q=0.8)
+
+    # ---
+    # get total sentence count - by counting entity1 as well
+    # ---
+    #
+    # e1_count = pd.pivot_table(df.loc[df['relation'] == "Supplier"],
+    #                           index="entity1",
+    #                           values="text",
+    #                           aggfunc="count").reset_index()
+    # e1_count.rename(columns={"text": "count"}, inplace=True)
+    # e1_count.sort_values("count", ascending=False, inplace=True)
+    #
+    # df = df.merge(e1_count,
+    #               on="entity1",
+    #               how="left")
+    # df.rename(columns={"count": "e1_count"}, inplace=True)
+    #
+    # e1_count_q = np.quantile(e1_count['count'].values, q=0.8)
+    # e2_count_q = np.quantile(e2_count['count'].values, q=0.8)
 
     # --
     # combine
@@ -294,6 +331,8 @@ if __name__ == "__main__":
     SUPPLIER = 1
     NO_REL = 0
     ABSTAIN = -1
+
+    # TODO: review if it matters having some of these separate
 
     @labeling_function()
     def regex_supply(x):
@@ -343,23 +382,34 @@ if __name__ == "__main__":
     def regex_order(x):
         return SUPPLIER if re.search(r" order", x.text, flags=re.I) else ABSTAIN
 
-
-
     @labeling_function()
     def relation_na(x):
         """if there is not relation - that's probably the case so use it"""
-        return NO_REL if x.relation == "NA" else ABSTAIN
+        return NO_REL if x['Confidence Score (%)'] == 0 else ABSTAIN
+
+    # @labeling_function()
+    # def e1_and_e2_sentence_count(x):
+    #     """if supplier and e1 and e2 occur a lot then abstain """
+    #     if x.relation == "Supplier":
+    #         if (x.e2_count > e2_count_q) & (x.e1_count > e1_count_q):
+    #             return ABSTAIN
+    #         else:
+    #             return SUPPLIER
+    #     else:
+    #         return ABSTAIN
+
 
     @labeling_function()
-    def e1_and_e2_sentence_count(x):
-        """if supplier and e1 and e2 occur a lot then abstain """
+    def epair_count(x):
+        """if the (supplier) entity pair does not come up often then give it supplier label"""
         if x.relation == "Supplier":
-            if (x.e2_count > e2_count_q) & (x.e1_count > e1_count_q):
+            if x.epair_count > epair_q:
                 return ABSTAIN
             else:
                 return SUPPLIER
         else:
             return ABSTAIN
+
 
     @labeling_function()
     def e2_sentence_count(x):
@@ -386,7 +436,7 @@ if __name__ == "__main__":
         regex_order,
         regex_shipments,
         relation_na,
-        e1_and_e2_sentence_count,
+        epair_count,
         e2_sentence_count
     ]
 
@@ -422,6 +472,14 @@ if __name__ == "__main__":
 
     print("weak label abstained from")
     print(f"{100 * (preds_train < 0).mean(): .2f}%")
+    print(f"no relation {100 * (preds_train == 0).mean(): .2f}%")
+    print(f"supplier {100 * (preds_train == 1).mean(): .2f}%")
+
+    # write to file
+    # TODO: consider adding transformations
+    # out["num_sentence"] += 1
+
+
 
     # --
     # probabilistic labelling and filtering out ABSTAIN
@@ -429,197 +487,206 @@ if __name__ == "__main__":
 
     probs_train = label_model.predict_proba(L_train)
 
+    # include the prob
+    df_train["prob_label"] = probs_train[:,1]
+    res = df_train.to_dict("records")
+
+    from nlp import get_data_path
+    with open(get_data_path("text_with_weak_labels.json"), "w") as f:
+        json.dump(res, f, indent=4)
+
     # select only the labelled (ignore abstained - should double check validate this)
     df_train_filtered, probs_train_filtered = filter_unlabeled_dataframe(
         X=df_train, y=probs_train, L=L_train
     )
     df_train_filtered = df_train_filtered.copy(True)
 
-    # --
-    # check weak labels
-    # --
 
-    # negative cases
-    rel_na = df_train_filtered.loc[df_train_filtered["relation"] == "NA"]
-
-    # true negative rate: weak label is 0 and relation is NA
-    # false positive rate: weak label is 1 and relation is NA
-    tn, fp = np.unique(rel_na["weak_label"].values, return_counts=True)[1] / len(rel_na)
-
-    # 'positive' cases
-    # - note in here expect there to be many false positives
-    # i.e. when there is a supplier relation but the text does not provide that information
-    rel_sup = df_train_filtered.loc[df_train_filtered["relation"] == "Supplier"]
-
-    # here assume if the weak label is 1 then it's a True positive (might not be in
-    fp, tp = np.unique(rel_sup["weak_label"].values, return_counts=True)[1] / len(rel_sup)
-
-    # rel_sup.loc[rel_sup["weak_label"] == 1, "text"].values[100]
-
-    # ---
-    # make transformations
-    # ---
-
-    # https://www.snorkel.org/use-cases/02-spam-data-augmentation-tutorial
-    # import names
-    from snorkel.augmentation import transformation_function
-    from snorkel.preprocess.nlp import SpacyPreprocessor
-
-    spacy = SpacyPreprocessor(text_field="text", doc_field="doc", memoize=True)
-
-    # Swap two adjectives at random.
-    @transformation_function(pre=[spacy])
-    def swap_adjectives(x):
-        adjective_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "ADJ"]
-        # Check that there are at least two adjectives to swap.
-        if len(adjective_idxs) >= 2:
-            idx1, idx2 = sorted(np.random.choice(adjective_idxs, 2, replace=False))
-            # Swap tokens in positions idx1 and idx2.
-            x.text = " ".join(
-                [
-                    x.doc[:idx1].text,
-                    x.doc[idx2].text,
-                    x.doc[1 + idx1 : idx2].text,
-                    x.doc[idx1].text,
-                    x.doc[1 + idx2 :].text,
-                ]
-            )
-            return x
-
-
-    # --
-    # using nltk
-    # ---
-
-
-
-    nltk.download("wordnet")
-
-
-    def get_synonym(word, pos=None):
-        """Get synonym for word given its part-of-speech (pos)."""
-        synsets = wn.synsets(word, pos=pos)
-        # Return None if wordnet has no synsets (synonym sets) for this word and pos.
-        if synsets:
-            words = [lemma.name() for lemma in synsets[0].lemmas()]
-            if words[0].lower() != word.lower():  # Skip if synonym is same as word.
-                # Multi word synonyms in wordnet use '_' as a separator e.g. reckon_with. Replace it with space.
-                return words[0].replace("_", " ")
-
-
-    def replace_token(spacy_doc, idx, replacement):
-        """Replace token in position idx with replacement."""
-        return " ".join([spacy_doc[:idx].text, replacement, spacy_doc[1 + idx :].text])
-
-
-    @transformation_function(pre=[spacy])
-    def replace_verb_with_synonym(x):
-        # Get indices of verb tokens in sentence.
-        verb_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "VERB"]
-        if verb_idxs:
-            # Pick random verb idx to replace.
-            idx = np.random.choice(verb_idxs)
-            synonym = get_synonym(x.doc[idx].text, pos="v")
-            # If there's a valid verb synonym, replace it. Otherwise, return None.
-            if synonym:
-                x.text = replace_token(x.doc, idx, synonym)
-                return x
-
-
-    @transformation_function(pre=[spacy])
-    def replace_noun_with_synonym(x):
-        # Get indices of noun tokens in sentence.
-        noun_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "NOUN"]
-        if noun_idxs:
-            # Pick random noun idx to replace.
-            idx = np.random.choice(noun_idxs)
-            synonym = get_synonym(x.doc[idx].text, pos="n")
-            # If there's a valid noun synonym, replace it. Otherwise, return None.
-            if synonym:
-                x.text = replace_token(x.doc, idx, synonym)
-                return x
-
-
-    @transformation_function(pre=[spacy])
-    def replace_adjective_with_synonym(x):
-        # Get indices of adjective tokens in sentence.
-        adjective_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "ADJ"]
-        if adjective_idxs:
-            # Pick random adjective idx to replace.
-            idx = np.random.choice(adjective_idxs)
-            synonym = get_synonym(x.doc[idx].text, pos="a")
-            # If there's a valid adjective synonym, replace it. Otherwise, return None.
-            if synonym:
-                x.text = replace_token(x.doc, idx, synonym)
-                return x
-
-
-    tfs = [
-        # change_person,
-        swap_adjectives,
-        replace_verb_with_synonym,
-        replace_noun_with_synonym,
-        replace_adjective_with_synonym,
-    ]
-
-    # from utils import preview_tfs
-    # copied from: https://github.com/snorkel-team/snorkel-tutorials/blob/master/spam/utils.py
-
-    def preview_tfs(df, tfs):
-        transformed_examples = []
-        for f in tfs:
-            for i, row in df.sample(frac=1, random_state=2).iterrows():
-                transformed_or_none = f(row)
-                # If TF returned a transformed example, record it in dict and move to next TF.
-                if transformed_or_none is not None:
-                    transformed_examples.append(
-                        OrderedDict(
-                            {
-                                "TF Name": f.name,
-                                "Original Text": row.text,
-                                "Transformed Text": transformed_or_none.text,
-                            }
-                        )
-                    )
-                    break
-        return pd.DataFrame(transformed_examples)
-
-    preview_tfs(rel_sup, tfs)
-
-    # # Random policy
-    # random_policy = RandomPolicy(
-    #     len(tfs), sequence_length=2, n_per_original=2, keep_original=True
+    # # --
+    # # check weak labels
+    # # --
+    #
+    # # negative cases
+    # rel_na = df_train_filtered.loc[df_train_filtered["relation"] == "NA"]
+    #
+    # # true negative rate: weak label is 0 and relation is NA
+    # # false positive rate: weak label is 1 and relation is NA
+    # tn, fp = np.unique(rel_na["weak_label"].values, return_counts=True)[1] / len(rel_na)
+    #
+    # # 'positive' cases
+    # # - note in here expect there to be many false positives
+    # # i.e. when there is a supplier relation but the text does not provide that information
+    # rel_sup = df_train_filtered.loc[df_train_filtered["relation"] == "Supplier"]
+    #
+    # # here assume if the weak label is 1 then it's a True positive (might not be in
+    # fp, tp = np.unique(rel_sup["weak_label"].values, return_counts=True)[1] / len(rel_sup)
+    #
+    # # rel_sup.loc[rel_sup["weak_label"] == 1, "text"].values[100]
+    #
+    # # ---
+    # # make transformations
+    # # ---
+    #
+    # # https://www.snorkel.org/use-cases/02-spam-data-augmentation-tutorial
+    # # import names
+    # from snorkel.augmentation import transformation_function
+    # from snorkel.preprocess.nlp import SpacyPreprocessor
+    #
+    # spacy = SpacyPreprocessor(text_field="text", doc_field="doc", memoize=True)
+    #
+    # # Swap two adjectives at random.
+    # @transformation_function(pre=[spacy])
+    # def swap_adjectives(x):
+    #     adjective_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "ADJ"]
+    #     # Check that there are at least two adjectives to swap.
+    #     if len(adjective_idxs) >= 2:
+    #         idx1, idx2 = sorted(np.random.choice(adjective_idxs, 2, replace=False))
+    #         # Swap tokens in positions idx1 and idx2.
+    #         x.text = " ".join(
+    #             [
+    #                 x.doc[:idx1].text,
+    #                 x.doc[idx2].text,
+    #                 x.doc[1 + idx1 : idx2].text,
+    #                 x.doc[idx1].text,
+    #                 x.doc[1 + idx2 :].text,
+    #             ]
+    #         )
+    #         return x
+    #
+    #
+    # # --
+    # # using nltk
+    # # ---
+    #
+    #
+    #
+    # nltk.download("wordnet")
+    #
+    #
+    # def get_synonym(word, pos=None):
+    #     """Get synonym for word given its part-of-speech (pos)."""
+    #     synsets = wn.synsets(word, pos=pos)
+    #     # Return None if wordnet has no synsets (synonym sets) for this word and pos.
+    #     if synsets:
+    #         words = [lemma.name() for lemma in synsets[0].lemmas()]
+    #         if words[0].lower() != word.lower():  # Skip if synonym is same as word.
+    #             # Multi word synonyms in wordnet use '_' as a separator e.g. reckon_with. Replace it with space.
+    #             return words[0].replace("_", " ")
+    #
+    #
+    # def replace_token(spacy_doc, idx, replacement):
+    #     """Replace token in position idx with replacement."""
+    #     return " ".join([spacy_doc[:idx].text, replacement, spacy_doc[1 + idx :].text])
+    #
+    #
+    # @transformation_function(pre=[spacy])
+    # def replace_verb_with_synonym(x):
+    #     # Get indices of verb tokens in sentence.
+    #     verb_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "VERB"]
+    #     if verb_idxs:
+    #         # Pick random verb idx to replace.
+    #         idx = np.random.choice(verb_idxs)
+    #         synonym = get_synonym(x.doc[idx].text, pos="v")
+    #         # If there's a valid verb synonym, replace it. Otherwise, return None.
+    #         if synonym:
+    #             x.text = replace_token(x.doc, idx, synonym)
+    #             return x
+    #
+    #
+    # @transformation_function(pre=[spacy])
+    # def replace_noun_with_synonym(x):
+    #     # Get indices of noun tokens in sentence.
+    #     noun_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "NOUN"]
+    #     if noun_idxs:
+    #         # Pick random noun idx to replace.
+    #         idx = np.random.choice(noun_idxs)
+    #         synonym = get_synonym(x.doc[idx].text, pos="n")
+    #         # If there's a valid noun synonym, replace it. Otherwise, return None.
+    #         if synonym:
+    #             x.text = replace_token(x.doc, idx, synonym)
+    #             return x
+    #
+    #
+    # @transformation_function(pre=[spacy])
+    # def replace_adjective_with_synonym(x):
+    #     # Get indices of adjective tokens in sentence.
+    #     adjective_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "ADJ"]
+    #     if adjective_idxs:
+    #         # Pick random adjective idx to replace.
+    #         idx = np.random.choice(adjective_idxs)
+    #         synonym = get_synonym(x.doc[idx].text, pos="a")
+    #         # If there's a valid adjective synonym, replace it. Otherwise, return None.
+    #         if synonym:
+    #             x.text = replace_token(x.doc, idx, synonym)
+    #             return x
+    #
+    #
+    # tfs = [
+    #     # change_person,
+    #     swap_adjectives,
+    #     replace_verb_with_synonym,
+    #     replace_noun_with_synonym,
+    #     replace_adjective_with_synonym,
+    # ]
+    #
+    # # from utils import preview_tfs
+    # # copied from: https://github.com/snorkel-team/snorkel-tutorials/blob/master/spam/utils.py
+    #
+    # def preview_tfs(df, tfs):
+    #     transformed_examples = []
+    #     for f in tfs:
+    #         for i, row in df.sample(frac=1, random_state=2).iterrows():
+    #             transformed_or_none = f(row)
+    #             # If TF returned a transformed example, record it in dict and move to next TF.
+    #             if transformed_or_none is not None:
+    #                 transformed_examples.append(
+    #                     OrderedDict(
+    #                         {
+    #                             "TF Name": f.name,
+    #                             "Original Text": row.text,
+    #                             "Transformed Text": transformed_or_none.text,
+    #                         }
+    #                     )
+    #                 )
+    #                 break
+    #     return pd.DataFrame(transformed_examples)
+    #
+    # preview_tfs(rel_sup, tfs)
+    #
+    # # # Random policy
+    # # random_policy = RandomPolicy(
+    # #     len(tfs), sequence_length=2, n_per_original=2, keep_original=True
+    # # )
+    #
+    # mean_field_policy = MeanFieldPolicy(
+    #     len(tfs),
+    #     sequence_length=2,
+    #     n_per_original=2,
+    #     keep_original=True,
+    #     p=[0.1, 0.3, 0.3, 0.3],
     # )
-
-    mean_field_policy = MeanFieldPolicy(
-        len(tfs),
-        sequence_length=2,
-        n_per_original=2,
-        keep_original=True,
-        p=[0.1, 0.3, 0.3, 0.3],
-    )
-
-    tf_applier = PandasTFApplier(tfs, mean_field_policy)
-    rel_sup_aug = tf_applier.apply( rel_sup.loc[rel_sup["weak_label"] == 1])
-    Y_train_augmented = rel_sup_aug["weak_label"].values
-
-    # ---
-    # write to file
-    # ----
-
-    df_train.drop(["e2_count", "e1_count"], axis=1, inplace=True)
-    df_train["augmented"] = False
-    rel_sup_aug.drop(["e2_count", "e1_count"], axis=1, inplace=True)
-    rel_sup_aug["augmented"] = True
-
-    out = pd.concat([df_train, rel_sup_aug], axis=0)
-
-    # out["num_sentence"] += 1
-    res = out.to_dict("records")
-
-    from nlp import get_data_path
-    with open(get_data_path("text_with_weak_labels.json"), "w") as f:
-        json.dump(res, f, indent=4)
+    #
+    # tf_applier = PandasTFApplier(tfs, mean_field_policy)
+    # rel_sup_aug = tf_applier.apply( rel_sup.loc[rel_sup["weak_label"] == 1])
+    # Y_train_augmented = rel_sup_aug["weak_label"].values
+    #
+    # # ---
+    # # write to file
+    # # ----
+    #
+    # df_train.drop(["e2_count", "e1_count"], axis=1, inplace=True)
+    # df_train["augmented"] = False
+    # rel_sup_aug.drop(["e2_count", "e1_count"], axis=1, inplace=True)
+    # rel_sup_aug["augmented"] = True
+    #
+    # out = pd.concat([df_train, rel_sup_aug], axis=0)
+    #
+    # # out["num_sentence"] += 1
+    # res = out.to_dict("records")
+    #
+    # from nlp import get_data_path
+    # with open(get_data_path("text_with_weak_labels.json"), "w") as f:
+    #     json.dump(res, f, indent=4)
 
 
     # - this is slow and not really needed
