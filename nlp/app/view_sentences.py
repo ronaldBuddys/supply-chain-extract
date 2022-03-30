@@ -217,8 +217,15 @@ app.layout = html.Div([
     # ], className='row'),
     #
 
-    html.H3(children='Main Selection',
-            style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"}),
+    html.Div([
+        html.H3(children='Main Selection',
+                style={'color': text_color, 'textAlign': 'left', "font-weight": "bold", "display": 'inline-block'},
+                className="threeColumns"),
+        html.H3(children='Does [entity2] supply {entity1} ?',
+                style={'color': "pink", "margin-left": "15px", "font-weight": "bold", "display": 'inline-block'},
+                className="fiveColumns"),
+    ], className='row'),
+
     # Main Selection
     html.Div([
 
@@ -319,12 +326,12 @@ app.layout = html.Div([
             html.Label(f"Gold Label Count:", style={'color': "yellow", "font-weight": "bold"}),
             html.P(str(gl_count), id="gold_label_count"),
         ], className="twoColumns", style={"display": 'inline-block'}),
-        html.Div([
-            html.Label("Current Gold Label:", style={'color': 'yellow',
-                                                     'textAlign': 'left',
-                                                     "font-weight": "bold"}),
-            html.P(id="gold_label_value"),
-        ], className="twoColumns", style={"margin-left": "15px", "display": 'inline-block'}),
+        # html.Div([
+        #     html.Label("Current Gold Label:", style={'color': 'yellow',
+        #                                              'textAlign': 'left',
+        #                                              "font-weight": "bold"}),
+        #     html.P(id="gold_label_value"),
+        # ], className="twoColumns", style={"margin-left": "15px", "display": 'inline-block'}),
         html.Div([
             html.Label("Action After Label", style={"font-weight": "bold"}),
             dcc.Dropdown(
@@ -336,8 +343,8 @@ app.layout = html.Div([
         ], className="twoColumns", style={"display": 'inline-block', "margin-left": "15px"})
     ], className="row"),
 
-    # Buttons for labellings (and navigating)
-    html.H6(children='Labelling and Nav. Buttons',
+    # Navigation buttons
+    html.H6(children='Navigation Buttons',
             style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"}),
 
     html.Div([
@@ -346,20 +353,47 @@ app.layout = html.Div([
             html.Button("Prev", id="prev_btn"),
             html.Button("Next", id="next_btn", style={"margin-left": "15px"}),
             html.Button("Random", id="rnd_btn", style={"margin-left": "15px"}),
-        ], style={'justify-content': 'center',
-                  'width': '100%', 'display': 'flex', 'align-items': 'center'}),
-        html.Br(),
-        html.Div([
-            html.Button("Supplier", id="supply_btn"),
-            html.Button("No Relation", id="norel_btn", style={"margin-left": "15px"}),
-            html.Button("Unsure", id="unsure_btn", style={"margin-left": "15px"})
-        ], style={'justify-content': 'center',
-                   'width': '100%', 'display': 'flex', 'align-items': 'center'})
+        ], style={'width': '100%', 'display': 'flex', 'align-items': 'center'}),
     ], className="row"),
 
-    # text
-    html.H6(children='Sentence Text',
-            style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"}),
+    # Labelling buttons
+    html.Div([
+        # -
+        html.H6(children='Labelling',
+                style={'color': text_color, "font-weight": "bold", "display": 'inline-block'}),
+        html.H6(children='Does [entity2] supply {entity1}?',
+                style={'color': "pink", "margin-left": "15px", "font-weight": "bold",  "display": 'inline-block'}),
+    ], className="row"),
+
+    html.Div([
+
+        html.Div([
+            html.Button("Supplier", id="supply_btn"),
+            html.Button("Not Specified", id="norel_btn", style={"margin-left": "15px"}),
+            html.Button("Unsure", id="unsure_btn", style={"margin-left": "15px"}),
+            html.Button("Partnership", id="prtnr_btn", style={"margin-left": "15px"}),
+            html.Button("Owner/Subsidiary", id="owner_btn", style={"margin-left": "15px"})
+        ], style={'width': '100%', 'display': 'flex', 'align-items': 'left'})
+    ], className="row"),
+
+
+    # ---
+    # sentence (text)
+    # ---
+    html.Div([
+        html.H6(children='Sentence Text',
+                style={'color': text_color,
+                       'textAlign': 'left',
+                       "font-weight": "bold",
+                       "display": 'inline-block'}),
+        html.Label("Current Gold Label:", style={'color': 'yellow',
+                                                 'textAlign': 'left',
+                                                 "font-weight": "bold",
+                                                 "margin-left": "15px",
+                                                 "display": 'inline-block'}),
+        html.P(id="gold_label_value", style={"display": 'inline-block',
+                                             "margin-left": "15px"}),
+    ], className="row"),
 
     html.Div([
 
@@ -417,6 +451,8 @@ app.layout = html.Div([
                Input('supply_btn', 'n_clicks'),
                Input('norel_btn', 'n_clicks'),
                Input('unsure_btn', 'n_clicks'),
+               Input('prtnr_btn', 'n_clicks'),
+               Input('owner_btn', 'n_clicks'),
                Input('next_btn', 'n_clicks'),
                Input('prev_btn', 'n_clicks'),
                Input('rnd_btn', 'n_clicks'),
@@ -429,10 +465,11 @@ app.layout = html.Div([
                    # State("table-dropdown", "page_size"),
              ])
 def available_titles(e1, e2, rel, wl, ns, ep,
-                     s_btn, nr_btn, us_btn, nx_btn, pv_btn, rn_btn,
+                     s_btn, nr_btn, us_btn, pt_btn, own_btn, nx_btn, pv_btn, rn_btn,
                      # pc, ps,
                      cr_idx, glc, aal):
 
+    print("-"*50)
     # ---
     # determine what triggered callback (?)
     # ---
@@ -504,6 +541,12 @@ def available_titles(e1, e2, rel, wl, ns, ep,
     # select data
     tmp = df.loc[select_bool]
 
+    # HACK: to make sure current index is in range
+    try:
+        _ = tmp.iloc[int(cr_idx)]["id"]
+    except:
+        cr_idx = str(0)
+
     # if selection but generated the callback
     if button_id in selection_buttons:
         # set current index values to zero
@@ -511,11 +554,15 @@ def available_titles(e1, e2, rel, wl, ns, ep,
         # get the gold label from database
         cur_id = tmp.iloc[int(cr_idx)]["id"]
         _ = art_db["gold_labels"].find_one(filter={"label_id": cur_id})
-        glabel = _.get("gold_label", None)
+        # could be None if it's a new sentence
+        if _ is None:
+            glabel = None
+        else:
+            glabel = _.get("gold_label", None)
 
     # otherwise, a iteration button has been clicked
     else:
-        if button_id in ["supply_btn", "norel_btn", "unsure_btn"]:
+        if button_id in ["supply_btn", "norel_btn", "unsure_btn", "prtnr_btn"]:
             # TODO: here should confirm status - and write to data
             cur_id = tmp.iloc[int(cr_idx)]["id"]
             print(f"current sentence id: {cur_id}")
@@ -524,8 +571,15 @@ def available_titles(e1, e2, rel, wl, ns, ep,
                 glabel = "Supplier"
             elif button_id == "norel_btn":
                 glabel = "NA"
-            else:
+            elif button_id == "unsure_btn":
                 glabel = "unsure"
+            elif button_id == "prtnr_btn":
+                glabel = "partnership"
+            elif button_id == "owner_btn":
+                glabel = "owner"
+            else:
+                print(f"button: {button_id}\nnot understood, preventing update")
+                raise PreventUpdate
             print(f"setting gold label as {glabel}")
             art_db['gold_labels'].update_one(filter={"label_id": cur_id},
                                              update={"$set": {"gold_label": glabel}})
@@ -569,7 +623,12 @@ def available_titles(e1, e2, rel, wl, ns, ep,
             # get the gold label from database
             cur_id = tmp.iloc[int(cr_idx)]["id"]
             _ = art_db["gold_labels"].find_one(filter={"label_id": cur_id})
-            glabel = _.get("gold_label", None)
+            # could be None if it's a new sentence
+            if _ is None:
+                glabel = None
+            else:
+                glabel = _.get("gold_label", None)
+
 
     # page_count = (len(tmp) // ps)
 
