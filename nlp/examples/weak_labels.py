@@ -75,20 +75,20 @@ if __name__ == "__main__":
     # ----
 
     # get credentials
-    with open(get_configs_path("mongo.json"), "r+") as f:
-        mdb_cred = json.load(f)
-
-    # get mongodb client - for connections
-    client = get_database(username=mdb_cred["username"],
-                          password=mdb_cred["password"],
-                          clustername=mdb_cred["cluster_name"])
+    # with open(get_configs_path("mongo.json"), "r+") as f:
+    #     mdb_cred = json.load(f)
+    #
+    # # get mongodb client - for connections
+    # client = get_database(username=mdb_cred["username"],
+    #                       password=mdb_cred["password"],
+    #                       clustername=mdb_cred["cluster_name"])
     # ---
     # read in value chain data / knowledge base
     # ---
 
-    t0 = time.time()
-    vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
-    t1 = time.time()
+    # t0 = time.time()
+    # vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
+    # t1 = time.time()
 
     # there are some missing company names? exclude those
     # vc = vc.loc[~pd.isnull(vc['Company Name'])]
@@ -113,35 +113,37 @@ if __name__ == "__main__":
     with open(sent_file, "r") as f:
         full_sents = json.load(f)
 
+    df = pd.DataFrame(full_sents)
+
     # ---
     # store data in dataframe - to allow for high level summary
     # ---
 
     # TODO: this could be removed, it looks like secondary analysis
-
-    df = pd.DataFrame(full_sents)
-
-    # short to long name map for entities in sentences
-    s2l_entity1 = df[["entity1", "entity1_full"]].drop_duplicates()
-    s2l_entity2 = df[["entity2", "entity2_full"]].drop_duplicates()
-
-    s2l_entity1.rename(columns={"entity1": "entity", "entity1_full": "entity_full"}, inplace=True)
-    s2l_entity2.rename(columns={"entity2": "entity", "entity2_full": "entity_full"}, inplace=True)
-
-    s2l_entity = pd.concat([s2l_entity1, s2l_entity2])
-
-    s2l_entity.drop_duplicates(inplace=True)
-
-    # TODO: check how many relations are 1 to 1
-    #  - want to be strict on there only being a 1-1 mapping?
-    ent_count = pd.pivot_table(s2l_entity,
-                               index='entity',
-                               values='entity_full',
-                               aggfunc="count").reset_index()
-
-    multi_map_ents = ent_count.loc[ent_count['entity_full'] > 1, "entity"]
-    print("short to long names with 1 to many mapping")
-    print(s2l_entity.loc[s2l_entity['entity'].isin(multi_map_ents)].sort_values("entity"))
+    #
+    #
+    #
+    # # short to long name map for entities in sentences
+    # s2l_entity1 = df[["entity1", "entity1_full"]].drop_duplicates()
+    # s2l_entity2 = df[["entity2", "entity2_full"]].drop_duplicates()
+    #
+    # s2l_entity1.rename(columns={"entity1": "entity", "entity1_full": "entity_full"}, inplace=True)
+    # s2l_entity2.rename(columns={"entity2": "entity", "entity2_full": "entity_full"}, inplace=True)
+    #
+    # s2l_entity = pd.concat([s2l_entity1, s2l_entity2])
+    #
+    # s2l_entity.drop_duplicates(inplace=True)
+    #
+    # # TODO: check how many relations are 1 to 1
+    # #  - want to be strict on there only being a 1-1 mapping?
+    # ent_count = pd.pivot_table(s2l_entity,
+    #                            index='entity',
+    #                            values='entity_full',
+    #                            aggfunc="count").reset_index()
+    #
+    # multi_map_ents = ent_count.loc[ent_count['entity_full'] > 1, "entity"]
+    # print("short to long names with 1 to many mapping")
+    # print(s2l_entity.loc[s2l_entity['entity'].isin(multi_map_ents)].sort_values("entity"))
 
     # ----
     # Filtering
@@ -149,11 +151,11 @@ if __name__ == "__main__":
 
     # TODO: consider if this should be done somewhere else - i.e. seperate to this
     # filtering
-    df = df.loc[df['num_sentence'] <= max_sentence_number]
-
-    # add sentence length
-    df["num_chars"] = [len(i) for i in df['full_sentence']]
-    df = df.loc[df['num_chars'] <= max_characters]
+    # df = df.loc[df['num_sentence'] <= max_sentence_number]
+    #
+    # # add sentence length
+    # df["num_chars"] = [len(i) for i in df['full_sentence']]
+    # df = df.loc[df['num_chars'] <= max_characters]
 
     # rename full sentence to text
     df.rename(columns={"full_sentence": "text"}, inplace=True)
@@ -180,17 +182,12 @@ if __name__ == "__main__":
     # df.loc[df['Confidence Score (%)'] < min_conf_score_for_supplier, "relation"] = "NA"
 
     # NOTE: this is not really needed
-    # TODO: validate this
-    # remove text inbetween () and {} - including those brackets
-    # df["text"] = [re.sub("[\{\(].*?[\}\)]", "", i) for i in df["text"]]
-    # replace any double space with single
-    # df["text"] = [re.sub("  ", " ", i) for i in df["text"]]
-
+    # - this should be done else where?
     # add {} around entity 1
     df["text"] = [re.sub(row['entity1'], "{%s}" % row['entity1'], row['text'])
                            for idx, row in df.iterrows()]
-    # and () around entity 2
-    df["text"] = [re.sub(row['entity2'], "(%s)" % row['entity2'], row['text'])
+    # and [] around entity 2
+    df["text"] = [re.sub(row['entity2'], "[%s]" % row['entity2'], row['text'])
                            for idx, row in df.iterrows()]
 
     # --
@@ -333,6 +330,7 @@ if __name__ == "__main__":
     ABSTAIN = -1
 
     # TODO: review if it matters having some of these separate
+    # TODO: consider using
 
     @labeling_function()
     def regex_supply(x):
