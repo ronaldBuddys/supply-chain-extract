@@ -184,11 +184,11 @@ if __name__ == "__main__":
     # NOTE: this is not really needed
     # - this should be done else where?
     # add {} around entity 1
-    df["text"] = [re.sub(row['entity1'], "{%s}" % row['entity1'], row['text'])
-                           for idx, row in df.iterrows()]
-    # and [] around entity 2
-    df["text"] = [re.sub(row['entity2'], "[%s]" % row['entity2'], row['text'])
-                           for idx, row in df.iterrows()]
+    # df["text"] = [re.sub(row['entity1'], "{%s}" % row['entity1'], row['text'])
+    #                        for idx, row in df.iterrows()]
+    # # and [] around entity 2
+    # df["text"] = [re.sub(row['entity2'], "[%s]" % row['entity2'], row['text'])
+    #                        for idx, row in df.iterrows()]
 
     # --
     # add some more metrics
