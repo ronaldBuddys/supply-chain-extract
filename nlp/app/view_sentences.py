@@ -55,22 +55,6 @@ art_db = client["news_articles"]
 # read in gold labels
 # ---
 
-# read from database
-# gold_labels = [i for i in art_db['gold_labels'].find()]
-
-# for i in gold_labels:
-#     i.pop("_id")
-
-# with open(get_data_path("gold_labels.json"), "w") as f:
-#     json.dump(gold_labels, f, indent=4)
-
-# read locally - just for development
-
-# with open(get_data_path("gold_labels.json"), "r") as f:
-#     gold_labels = json.load(f)
-# gl = pd.DataFrame(gold_labels)
-#
-
 # get a count of number of gold labels
 pipeline = [
     {
@@ -91,20 +75,10 @@ gl_count = gl_count[0]["has gold label"]
 # read in value chain data / knowledge base
 # ---
 
-# vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
-
-# there are some missing company names? exclude those
-# vc = vc.loc[~pd.isnull(vc['Company Name'])]
-
 # read in locally stored valued chains
 vc = pd.read_csv(get_data_path("VCHAINS.csv"))
-
-
+# get knowledge base
 kb = get_knowledge_base_from_value_chain_data(vc)
-
-# for now no longer need connection
-# client.close()
-
 
 # ---
 # read in full_sentences store locally
@@ -142,20 +116,8 @@ app.title = "View Sentences"
 
 text_color = "#1314fc"
 
-# a = art_db["articles"].find_one()
-
-# get the unique names
-# unique_names = art_db["articles"].distinct("names_in_text")
-
-# put the long names into a list of dictionaries - use for selection
-# unames_list_dict = [{'label': i, 'value': i} for i in unique_names]
-
-
-
-
-
 # ---
-# helper functions
+# helper functions - review: these aren't being used?
 # ---
 
 def replace_with_html(text, split_word, replace_with):
@@ -239,20 +201,9 @@ format_float_cols = ['Confidence Score (%)', "prob_label"]
 for ffc in format_float_cols:
     df[ffc] = df[ffc].map("{:,.3f}".format)
 
-
-
 # actions after label options
 act_after_label = ["None", "Next", "Prev", "Random"]
 act_after_label_opts = [{'label': i, "value": i} for i in act_after_label]
-
-# dcc.Dropdown(
-#     options=[
-#         {'label': 'New York City', 'value': 'New York City'},
-#         {'label': 'Montreal', 'value': 'Montreal'},
-#         {'label': 'San Francisco', 'value': 'San Francisco'},
-#     ],
-#     value='Montreal'
-# )
 
 
 app.layout = html.Div([
