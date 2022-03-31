@@ -179,6 +179,60 @@ def get_knowledge_base_from_value_chain_data(vc):
     return kb
 
 
+def get_bidirectional_suppliers(kb):
+    """given the knowledge base extract the entity pairs that 'go both ways'
+    i.e. (A supplies B) AND (B supplies A)"""
+
+    e1s = kb["entity1"].values
+    e2s = kb["entity2"].values
+
+    # get the unique entities 1
+    e1s_u = np.unique(e1s)
+
+    bi_dir = []
+
+    # for each entity1 - get all the entity 2
+    # - then for each of those entity2 see if when
+    # - it's entity1 does it contain the other (org e1)
+    for i, e1 in enumerate(np.unique(e1s_u)):
+        if i % 100 == 0:
+            print(f"{i}/{len(e1s_u)}")
+
+        # all of e1's e2s
+        e1_e2s = e2s[e1s==e1]
+
+        # for each of the entity2, check if / when it's e1
+        for e1_e2 in e1_e2s:
+            #
+            if e1 in e2s[e1s == e1_e2]:
+                # print((e1, e1_e2))
+                bi_dir.append((e1, e1_e2))
+
+    # for each bi-directional entity pair
+    out = []
+    for bd in bi_dir:
+        e1, e2 = bd
+
+        # b1 = ((kb["entity1"] == e1) & (kb["entity2"] == e2)).values.any()
+        # b2 = ((kb["entity1"] == e2) & (kb["entity2"] == e1)).values.any()
+
+        b1 = ((e1s == e1) & (e2s == e2)).any()
+        b2 = ((e1s == e2) & (e2s == e1)).any()
+
+        assert b1 & b2, "expected both"
+
+        k1 = kb.loc[(kb["entity1"] == e1) & (kb["entity2"] == e2)]
+        k2 = kb.loc[(kb["entity1"] == e2) & (kb["entity2"] == e1)]
+
+        out.append(pd.concat([k1, k2]))
+
+    res = pd.concat(out)
+
+    # due to bi-directional nature there will be duplicates
+    # - drop those!
+    res = res.drop_duplicates()
+
+    return res
 
 if __name__ == "__main__":
 
