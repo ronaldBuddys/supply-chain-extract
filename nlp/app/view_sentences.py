@@ -56,20 +56,21 @@ art_db = client["news_articles"]
 # ---
 
 # get a count of number of gold labels
-pipeline = [
-    {
-        "$match":
-            {
-                "gold_label": {"$ne": None}
-            }
-    },
-    {
-        "$count": "has gold label"
-    }
-]
-
-gl_count = list(art_db["gold_labels"].aggregate(pipeline))
-gl_count = gl_count[0]["has gold label"]
+# pipeline = [
+#     {
+#         "$match":
+#             {
+#                 "gold_label": {"$ne": None}
+#             }
+#     },
+#     {
+#         "$count": "has gold label"
+#     }
+# ]
+#
+# gl_count = list(art_db["gold_labels"].aggregate(pipeline))
+# gl_count = gl_count[0]["has gold label"]
+#
 
 # ---
 # read in value chain data / knowledge base
@@ -84,20 +85,58 @@ kb = get_knowledge_base_from_value_chain_data(vc)
 # read in full_sentences store locally
 # ---
 
-print("reading in full sentences")
+# print("reading in full sentences")
+#
+# # text_file = get_data_path("full_sentences.json")
+# text_file = get_data_path("text_with_weak_labels.json")
+#
+# assert os.path.exists(text_file), \
+#     f"looks like: {text_file}, copy from google drive data/full_sentences.json"
+#
+# with open(text_file, "r") as f:
+#     full_sents = json.load(f)
+#
+# # store sentence data in dataframe
+# df = pd.DataFrame(full_sents)
 
-# text_file = get_data_path("full_sentences.json")
-text_file = get_data_path("text_with_weak_labels.json")
+# ---
+# read in split data (stored locally)
+# ---
 
-assert os.path.exists(text_file), \
-    f"looks like: {text_file}, copy from google drive data/full_sentences.json"
+# TODO: tidy the following up
+# TODO: consider just sing this - would have to compare with above a bit
+split_data = pd.read_csv(get_data_path("df_full.tsv"), sep="\t", na_filter = False)
+test_map = {"train": 0, "val": 1, "test": 2}
 
-with open(text_file, "r") as f:
-    full_sents = json.load(f)
+# HARDCODED: taking only test data
+df = split_data.loc[split_data['split'] == test_map["test"]]
 
-# store sentence data in dataframe
-df = pd.DataFrame(full_sents)
+# HARDCODED: for now just get the test data
+# ids = split_data.loc[split_data['split'] == test_map["test"], "id"].values
 
+# take a subset of data
+# df = df.loc[df['id'].isin(ids)]
+
+# read the current gold_labels from the database - for the given splits
+filter = {"label_id": {"$in": [i for i in df["id"]]}}
+gl_tmp = list(art_db['gold_labels'].find(filter=filter))
+gl_tmp = pd.DataFrame(gl_tmp)
+gl_tmp.drop("_id", axis=1, inplace=True)
+
+pre_merge = len(df)
+
+# merge on current gold label with sentence data
+df = df.merge(gl_tmp, left_on="id", right_on="label_id", how="left")
+df.drop("label_id", axis=1, inplace=True)
+
+assert len(df) == pre_merge, "there was an unexpected dataframe file change after merging labels"
+
+# if there are any missing gold_labels (for some reason label_id is not db)
+# - set to None
+df.loc[pd.isnull(df["gold_label"]), "gold_label"] = None
+
+# get the current gold label count
+gl_count = (~pd.isnull(df["gold_label"])).sum()
 
 # ---
 # create an Dash app - referring to some css template
@@ -183,16 +222,21 @@ wl_options = [{'label': i, 'value': i} for i in np.sort(df['weak_label'].unique(
 
 num_sent_options = [{'label': i, 'value': i} for i in np.sort(df['num_sentence'].unique())]
 epair_options = [{'label': i, 'value': i} for i in np.sort(df['epair_count'].unique())]
+ulabel_options = [{'label': i, 'value': i} for i in ["True", "False"]]
 
 
 # previous column selection
 select_col = ["text", "num_sentence", "entity1", "entity2", "relation", "weak_label"]
 table_columns = [{"id": c, "name": c} for c in select_col]
 
+# information on text columns
 info_col = ["entity1", "entity2", "entity1_full", "entity2_full",
             "relation", "weak_label", "prob_label", "Confidence Score (%)",
             "num_sentence", "sentence_range", "num_chars", "epair_count"]
-info_table_columns = [{"id": c, "name": c} for c in info_col]
+if "companies_in_text" in df.columns:
+    info_col.append("companies_in_text")
+
+
 
 
 # format some of the float columns
@@ -217,6 +261,17 @@ question_text = text_to_dash_html(question_text,
                                   color_text = e1_color+e2_color)
 # formated_text = text_to_dash_html(cur_sent,
 #                                   color_text)
+
+
+# ---
+# make some columns shorter ?
+# ---
+
+# make some sentences shorter? - replace space with carraige return
+# rename_map = {ic: re.sub("_| ", "\n", ic) for ic in info_col}
+# info_col = [v for k, v in rename_map.items()]
+# df.rename(columns=rename_map, inplace=True)
+info_table_columns = [{"id": c, "name": re.sub("_| ", "\n", c)} for c in info_col]
 
 app.layout = html.Div([
 
@@ -279,7 +334,9 @@ app.layout = html.Div([
 
 
     ], className='row'),
+    # -----
     # filtering Selection
+    # -----
     html.H6(children='Filtering',
             style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"}),
 
@@ -302,6 +359,15 @@ app.layout = html.Div([
                 placeholder="select max. # ",
                 style={'fontSize': '12px'}),
         ], className="two columns"),
+        html.Div([
+            html.Label("show unlabeled only?"),
+            dcc.Dropdown(
+                id='ulabel_select',
+                options=ulabel_options,
+                # placeholder="select max. # ",
+                value="False",
+                style={'fontSize': '12px'}),
+        ], className="three columns"),
     ], className='row'),
 
     # information about the sentences
@@ -324,6 +390,11 @@ app.layout = html.Div([
                     'textAlign': 'left'
                 }
             ],
+            style_header={
+                'backgroundColor': 'white',
+                'fontWeight': 'bold',
+                'whiteSpace': 'pre-line'
+            },
             # page_current=0,
             # page_size=10,
             # page_action="custom",
@@ -460,6 +531,7 @@ app.layout = html.Div([
                Input('weak_label_select', 'value'),
                Input('num_sent_select', 'value'),
                Input('epair_select', 'value'),
+               Input('ulabel_select', 'value'),
                Input('supply_btn', 'n_clicks'),
                Input('norel_btn', 'n_clicks'),
                Input('unsure_btn', 'n_clicks'),
@@ -476,7 +548,7 @@ app.layout = html.Div([
                 State("act_after_label", "value")
                    # State("table-dropdown", "page_size"),
              ])
-def available_titles(e1, e2, rel, wl, ns, ep,
+def available_titles(e1, e2, rel, wl, ns, ep, ul,
                      s_btn, nr_btn, us_btn, pt_btn, own_btn, nx_btn, pv_btn, rn_btn,
                      # pc, ps,
                      cr_idx, glc, aal):
@@ -501,7 +573,9 @@ def available_titles(e1, e2, rel, wl, ns, ep,
         'entity2_select',
         'relation_select',
         'weak_label_select',
-        'num_sent_select'
+        'num_sent_select',
+        'epair_select',
+        'ulabel_select'
     ]
 
     # TODO: allow for multiple values
@@ -541,6 +615,14 @@ def available_titles(e1, e2, rel, wl, ns, ep,
         print(b.sum())
         select_bool = select_bool & b
 
+    if ul is not None:
+        if ul == "True":
+            print(f"only will show unlabelled text")
+            b = pd.isnull(df["gold_label"]).values
+            print(b.sum())
+            select_bool = select_bool & b
+
+    # HARDCODED: for now only show entries with no gold label
 
     print(f"return: {select_bool.sum()} values")
     print(f"current index: {cr_idx}")
@@ -559,18 +641,18 @@ def available_titles(e1, e2, rel, wl, ns, ep,
     except:
         cr_idx = str(0)
 
-    # if selection but generated the callback
+    # if selection generated the callback
     if button_id in selection_buttons:
         # set current index values to zero
         cr_idx = str(0)
         # get the gold label from database
-        cur_id = tmp.iloc[int(cr_idx)]["id"]
-        _ = art_db["gold_labels"].find_one(filter={"label_id": cur_id})
-        # could be None if it's a new sentence
-        if _ is None:
-            glabel = None
-        else:
-            glabel = _.get("gold_label", None)
+        # cur_id = tmp.iloc[int(cr_idx)]["id"]
+        # _ = art_db["gold_labels"].find_one(filter={"label_id": cur_id})
+        # # could be None if it's a new sentence
+        # if _ is None:
+        #     glabel = None
+        # else:
+        #     glabel = _.get("gold_label", None)
 
     # otherwise, a iteration button has been clicked
     else:
@@ -594,7 +676,11 @@ def available_titles(e1, e2, rel, wl, ns, ep,
                 raise PreventUpdate
             print(f"setting gold label as {glabel}")
             art_db['gold_labels'].update_one(filter={"label_id": cur_id},
-                                             update={"$set": {"gold_label": glabel}})
+                                             update={"$set": {"gold_label": glabel}},
+                                             upsert=True)
+
+            # update value in dataframe
+            df.loc[df['id'] == cur_id, "gold_label"] = glabel
 
             # increment the gold label count
             glc = str(int(glc) + 1)
@@ -644,7 +730,7 @@ def available_titles(e1, e2, rel, wl, ns, ep,
     cur_id = tmp.iloc[int(cr_idx)]["id"]
     _ = art_db["gold_labels"].find_one(filter={"label_id": cur_id})
 
-    # TODO: fix this
+    # TODO: fix this / tidy up: trying to handle missing
     _ = {} if _ is None else _
     glabel = _.get("gold_label", "no label provided yet")
     glabel = "no label provided yet" if glabel is None else glabel
@@ -666,14 +752,12 @@ def available_titles(e1, e2, rel, wl, ns, ep,
     e1_color = [{'word': "{%s}" % e1, "style": {"backgroundColor": "#6190ff", 'display': 'inline-block'} }]
     e2_color = [{'word': "[%s]" % e2, "style": {"backgroundColor": "yellow", 'display': 'inline-block'} }]
 
-    # re.sub(cur_sent
+    # add brackts to current text
     cur_sent = re.sub(e1, "{%s}" % e1, cur_sent)
     cur_sent = re.sub(e2, "[%s]" % e2, cur_sent)
 
     formated_text = text_to_dash_html(cur_sent,
                                       color_text=e1_color+e2_color)
-
-
 
 
     # page_count, \
