@@ -180,7 +180,7 @@ def get_knowledge_base_from_value_chain_data(vc, verbose=True):
     if verbose:
         print("'flipping' value chain: all Relationship = 'Customer' -> 'Supplier' ")
     # select a subset of value chain data to make knowledge base
-    kb = vc[relevant_cols].copy(True)
+    kb = vc[relevant_cols + ["Last Update Date"]].copy(True)
     kb.rename(columns={"Parent Name": "entity1", "Company Name": "entity2", "Relationship": "rel"},
               inplace=True)
     # select just customers
@@ -197,6 +197,16 @@ def get_knowledge_base_from_value_chain_data(vc, verbose=True):
 
     # drop duplicates
     kb = kb.drop_duplicates()
+
+    # again get the mostly recently updated - appears data can be update in
+    # one parent company table, but not other, leading to discrepancies
+    kb_recent = pd.pivot_table(kb,
+                               index=["entity1", "entity2", "rel"],
+                               values="Last Update Date",
+                               aggfunc="max").reset_index()
+    kb = kb_recent.merge(kb,
+                         on=["entity1", "entity2", "rel", "Last Update Date"],
+                         how="left")
 
     # drop any entries where company supplies self
     kb = kb.loc[kb["entity1"] != kb["entity2"]]
@@ -261,6 +271,43 @@ def get_bidirectional_suppliers(kb, verbose=True):
     res = res.drop_duplicates()
 
     return res
+
+
+def get_most_confidence_bidirectional_pair(bi_dir):
+    """given the input from bidirectional_supplier_relations.csv
+    or the output from get_bidirectional_suppliers
+    add a column indicating most confident of the pairs
+
+    NOTE: pairs will be equal confidence will have both directions
+    with 'most_conf' = True
+    """
+    # require the bi-directional relationships only have Supplier
+    assert np.all(bi_dir["rel"].unique() == "Supplier"), "expect only 'rel' value to be 'Supplier'"
+
+    # re-name columns (not needed)
+    # bi_dir.rename(columns={"entity1": "entity1_full", "entity2": "entity2_full"},
+    #               inplace=True)
+
+    # get each pair - sorted
+    bi_dir["pair"] = bi_dir[["entity1", "entity2"]].apply(lambda x: "|".join(np.sort(x)), axis=1)
+
+    # get max confidence per pair
+    bi_dir_max_c = pd.pivot_table(bi_dir,
+                                  index=["pair"],
+                                  values="Confidence Score (%)",
+                                  aggfunc="max").reset_index()
+    bi_dir_max_c.rename(columns={"Confidence Score (%)": "max_conf"}, inplace=True)
+
+    # merge on the max confidence per pair
+    bd = bi_dir.merge(bi_dir_max_c[["pair", "max_conf"]],
+                      on=["pair"],
+                      how="left")
+
+    # add column to indicate if confidence score is maximal
+    bd['most_conf'] = bd['Confidence Score (%)'] == bd['max_conf']
+
+    return bd
+
 
 if __name__ == "__main__":
 
