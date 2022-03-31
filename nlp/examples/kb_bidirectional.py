@@ -55,25 +55,25 @@ if __name__ == "__main__":
     # ---
     # determine how many pairs which are bi-directional are in corpuse
     # ---
-
+    #
     # ---
     # read in full_sentences store locally
     # ---
-    sent_file = get_data_path("processed_sentences.json")
-
-    assert os.path.exists(sent_file), \
-        f"looks like: {sent_file}, copy from google drive data/{os.path.basename(sent_file)}"
-
-    with open(sent_file, "r") as f:
-        full_sents = json.load(f)
-
-    df = pd.DataFrame(full_sents)
-
-    # ---
-
-    tmp = res.merge(df,
-                    left_on=["entity1", "entity2"],
-                    right_on=["entity1_full", "entity2_full"],
-                    how="left")
-
-    tmp = tmp.loc[~pd.isnull(tmp["id"])]
+    # sent_file = get_data_path("processed_sentences.json")
+    #
+    # assert os.path.exists(sent_file), \
+    #     f"looks like: {sent_file}, copy from google drive data/{os.path.basename(sent_file)}"
+    #
+    # with open(sent_file, "r") as f:
+    #     full_sents = json.load(f)
+    #
+    # df = pd.DataFrame(full_sents)
+    #
+    # # ---
+    #
+    # tmp = res.merge(df,
+    #                 left_on=["entity1", "entity2"],
+    #                 right_on=["entity1_full", "entity2_full"],
+    #                 how="left")
+    #
+    # tmp = tmp.loc[~pd.isnull(tmp["id"])]

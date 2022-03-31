@@ -154,13 +154,38 @@ def niave_long_to_short_name(all_names):
     return short_name_map
 
 
-def get_knowledge_base_from_value_chain_data(vc):
+def get_knowledge_base_from_value_chain_data(vc, verbose=True):
 
+    if verbose:
+        print("generating knowledge base ")
+    # NOTE: there can be duplicates in value chain data - a given pair may have multiple entries
+    # - but for difference dates
+    # here will only take the most recent
+
+    relevant_cols = ["Parent Name", "Company Name", "Relationship", "Confidence Score (%)"]
+
+    if verbose:
+        print("taking most recent entries")
+
+    # for each pair get the Last Update Date
+    recent = pd.pivot_table(vc[relevant_cols + ["Last Update Date"]],
+                            index=["Parent Name", "Company Name", "Relationship"],
+                            values=["Last Update Date"],
+                            aggfunc="max").reset_index()
+
+    vc = recent.merge(vc[relevant_cols + ["Last Update Date"]],
+                      on=["Parent Name", "Company Name", "Relationship", "Last Update Date"],
+                      how="left")
+
+    if verbose:
+        print("'flipping' value chain: all Relationship = 'Customer' -> 'Supplier' ")
     # select a subset of value chain data to make knowledge base
-    kb = vc[["Parent Name", "Company Name", "Relationship", "Confidence Score (%)"]].copy(True)
+    kb = vc[relevant_cols].copy(True)
     kb.rename(columns={"Parent Name": "entity1", "Company Name": "entity2", "Relationship": "rel"},
               inplace=True)
+    # select just customers
     c = kb.loc[kb["rel"] == "Customer"].copy(True)
+    # select just suppliers
     s = kb.loc[kb["rel"] == "Supplier"].copy(True)
 
     # switch customer labels around
@@ -179,9 +204,12 @@ def get_knowledge_base_from_value_chain_data(vc):
     return kb
 
 
-def get_bidirectional_suppliers(kb):
+def get_bidirectional_suppliers(kb, verbose=True):
     """given the knowledge base extract the entity pairs that 'go both ways'
     i.e. (A supplies B) AND (B supplies A)"""
+
+    if verbose:
+        print("getting companys that have bi-directional supplier relationship")
 
     e1s = kb["entity1"].values
     e2s = kb["entity2"].values
@@ -195,7 +223,7 @@ def get_bidirectional_suppliers(kb):
     # - then for each of those entity2 see if when
     # - it's entity1 does it contain the other (org e1)
     for i, e1 in enumerate(np.unique(e1s_u)):
-        if i % 100 == 0:
+        if (i % 100 == 0) & verbose:
             print(f"{i}/{len(e1s_u)}")
 
         # all of e1's e2s
