@@ -455,6 +455,7 @@ app.layout = html.Div([
             html.Button("Not Specified", id="norel_btn", style={"margin-left": "15px"}),
             html.Button("Unsure", id="unsure_btn", style={"margin-left": "15px"}),
             html.Button("Partnership", id="prtnr_btn", style={"margin-left": "15px"}),
+            html.Button("Rival/Competitor", id="compet_btn", style={"margin-left": "15px"}),
             html.Button("Owner/Subsidiary", id="owner_btn", style={"margin-left": "15px"})
         ], style={'width': '100%', 'display': 'flex', 'align-items': 'left'})
     ], className="row"),
@@ -536,6 +537,7 @@ app.layout = html.Div([
                Input('norel_btn', 'n_clicks'),
                Input('unsure_btn', 'n_clicks'),
                Input('prtnr_btn', 'n_clicks'),
+               Input('compet_btn', 'n_clicks'),
                Input('owner_btn', 'n_clicks'),
                Input('next_btn', 'n_clicks'),
                Input('prev_btn', 'n_clicks'),
@@ -549,7 +551,7 @@ app.layout = html.Div([
                    # State("table-dropdown", "page_size"),
              ])
 def available_titles(e1, e2, rel, wl, ns, ep, ul,
-                     s_btn, nr_btn, us_btn, pt_btn, own_btn, nx_btn, pv_btn, rn_btn,
+                     s_btn, nr_btn, us_btn, pt_btn, cmp_btn, own_btn, nx_btn, pv_btn, rn_btn,
                      # pc, ps,
                      cr_idx, glc, aal):
 
@@ -671,9 +673,12 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
                 glabel = "partnership"
             elif button_id == "owner_btn":
                 glabel = "owner"
+            elif button_id == "compet_btn":
+                glabel = "competitor"
             else:
                 print(f"button: {button_id}\nnot understood, preventing update")
                 raise PreventUpdate
+
             print(f"setting gold label as {glabel}")
             art_db['gold_labels'].update_one(filter={"label_id": cur_id},
                                              update={"$set": {"gold_label": glabel}},
@@ -684,6 +689,8 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
 
             # increment the gold label count
             glc = str(int(glc) + 1)
+
+
 
             # action after label
             # TODO: avoid the duplicate code
@@ -721,7 +728,16 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
     # page_count = (len(tmp) // ps)
 
     # select sentence
-    cur_sent = tmp.iloc[int(cr_idx)]["text"]
+    # HACK: to avoid cr_idx being out of range
+    # - it's possible the bool select could be too strict
+    # - which case a PreventUpdate should be used
+    try:
+        cur_sent = tmp.iloc[int(cr_idx)]["text"]
+    except Exception as e:
+        print(e)
+        cr_idx = "0"
+        cur_sent = tmp.iloc[int(cr_idx)]["text"]
+
 
     # current sentence id
     # cur_id = tmp.iloc[int(cr_idx)]["id"]
