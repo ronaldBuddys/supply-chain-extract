@@ -210,15 +210,15 @@ if __name__ == "__main__":
     # --
 
     # sentence per article
-    sent_per_art = pd.pivot_table(df, index='article', values="text", aggfunc='count')
-    sent_per_art = sent_per_art.reset_index()
-    sent_per_art.sort_values("text", ascending=False, inplace=True)
-
-    # determine a cutoff level
-    q_art = np.quantile(sent_per_art['text'].values, q=0.99)
-
-    # select articles that are at or below above threshold
-    use_articles = sent_per_art.loc[sent_per_art['text'] <= q_art, "article"].values
+    # sent_per_art = pd.pivot_table(df, index='article', values="text", aggfunc='count')
+    # sent_per_art = sent_per_art.reset_index()
+    # sent_per_art.sort_values("text", ascending=False, inplace=True)
+    #
+    # # determine a cutoff level
+    # q_art = np.quantile(sent_per_art['text'].values, q=0.99)
+    #
+    # # select articles that are at or below above threshold
+    # use_articles = sent_per_art.loc[sent_per_art['text'] <= q_art, "article"].values
 
     # take subset of sentences
     # df = df.loc[df['article'].isin(use_articles)]
@@ -286,6 +286,38 @@ if __name__ == "__main__":
                   on=["entity1", "entity2", "relation"],
                   how="left")
 
+    # ----
+    # company count per sentence - considering all companies in same sentence
+    # ----
+
+    # for each article - start_sent - end_sent triple get a all the (unique) companies that
+    # exists for that sentence. dividing the number of company by num_tokens (or num_chars)
+    # can give a measure of density
+    # - the idea higher density implies less likely of describing a supplier relation
+    # - at least for all combinations
+
+    idx_col = ['date_publish', 'source_domain', 'article', "start_sent", "end_sent"]
+    art_start_end = df[idx_col + ["entity1_full", "entity2_full"]].copy(True)
+    # make a pair column, and then combine across idx_col, then count the unique
+    art_start_end["pair"] = art_start_end[["entity1_full", "entity2_full"]].apply(lambda x: "|".join(x), axis=1)
+
+    # combine across idx_col
+    # TODO: double check the lambda function below
+    # - lambda function: join all pairs with |, split the result with |, take unique, get length
+    comb_ase = pd.pivot_table(art_start_end,
+                              index=idx_col,
+                              values="pair",
+                              aggfunc=lambda x: len(np.unique(("|".join(x)).split("|"))))
+
+    comb_ase.rename(columns={"pair": "companies_in_text"}, inplace=True)
+    comb_ase.reset_index(inplace=True)
+
+    df = df.merge(comb_ase,
+                  on=idx_col,
+                  how="left")
+
+    # skip the measure of density, as it's harder to interpret
+    # tmp["company_density"] = tmp["companies_in_text"] / tmp["num_tokens"]
 
     # ---
     # get total sentence count - by counting entity1 as well
@@ -334,7 +366,7 @@ if __name__ == "__main__":
 
     @labeling_function()
     def regex_supply(x):
-        return SUPPLIER if re.search(r" supply ", x.text, flags=re.I) else ABSTAIN
+        return SUPPLIER if re.search(r" supply", x.text, flags=re.I) else ABSTAIN
 
     @labeling_function()
     def regex_supplier(x):
@@ -350,7 +382,7 @@ if __name__ == "__main__":
 
     @labeling_function()
     def regex_customer(x):
-        return SUPPLIER if re.search(r" customer | client", x.text, flags=re.I) else ABSTAIN
+        return SUPPLIER if re.search(r" customer| client", x.text, flags=re.I) else ABSTAIN
 
     @labeling_function()
     def regex_make(x):
@@ -362,7 +394,7 @@ if __name__ == "__main__":
 
     @labeling_function()
     def regex_provides(x):
-        return SUPPLIER if re.search(r" provide | provides ", x.text, flags=re.I) else ABSTAIN
+        return SUPPLIER if re.search(r" provide| provides", x.text, flags=re.I) else ABSTAIN
 
     @labeling_function()
     def regex_produces(x):
@@ -374,7 +406,7 @@ if __name__ == "__main__":
 
     @labeling_function()
     def regex_shipments(x):
-        return SUPPLIER if re.search(r" shipments", x.text, flags=re.I) else ABSTAIN
+        return SUPPLIER if re.search(r" shipment", x.text, flags=re.I) else ABSTAIN
 
     @labeling_function()
     def regex_order(x):
@@ -384,6 +416,20 @@ if __name__ == "__main__":
     def relation_na(x):
         """if there is not relation - that's probably the case so use it"""
         return NO_REL if x['Confidence Score (%)'] == 0 else ABSTAIN
+
+    @labeling_function()
+    def astrix_count(x):
+        """reuters specific - if there are many *'s (more than 1) assume
+        they represent bullet points - which are often unrelated (new bulletins)"""
+        return NO_REL if len(re.findall("\*", x.text)) > 1 else ABSTAIN
+
+    @labeling_function()
+    def companies_in_text(x):
+        """consider only the number of sentence e2 is in, with the idea the fewer the better
+        - less popular suggests a relationship will be mentioned?"""
+        return NO_REL if x.companies_in_text >= 5 else ABSTAIN
+
+
 
     # @labeling_function()
     # def e1_and_e2_sentence_count(x):
@@ -434,6 +480,8 @@ if __name__ == "__main__":
         regex_order,
         regex_shipments,
         relation_na,
+        astrix_count,
+        companies_in_text,
         epair_count,
         e2_sentence_count
     ]
@@ -468,10 +516,9 @@ if __name__ == "__main__":
 
     df_train["weak_label"] = preds_train
 
-    print("weak label abstained from")
-    print(f"{100 * (preds_train < 0).mean(): .2f}%")
-    print(f"no relation {100 * (preds_train == 0).mean(): .2f}%")
-    print(f"supplier {100 * (preds_train == 1).mean(): .2f}%")
+    print(f"weak label abstained from: {100 * (preds_train < 0).mean(): .2f}%")
+    print(f"no relation: {100 * (preds_train == 0).mean(): .2f}%")
+    print(f"supplier: {100 * (preds_train == 1).mean(): .2f}%")
 
     # write to file
     # TODO: consider adding transformations
@@ -499,6 +546,12 @@ if __name__ == "__main__":
     )
     df_train_filtered = df_train_filtered.copy(True)
 
+
+    # ----
+    # investigate
+    # -----
+
+    #8837bdb10360390047271ad0872e79b6a9e7e040d729daf2361fb0418917a772_20170928142741_www.reuters.com_FordMotoCo_LyftInc_6|7
 
     # # --
     # # check weak labels
