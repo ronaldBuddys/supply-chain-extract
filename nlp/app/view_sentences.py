@@ -740,6 +740,8 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
                 # print("random button")
                 # TODO: if picking random need to update pc and ps
                 cr_idx = np.random.choice(np.arange(len(tmp)))
+        elif button_id in "No clicks yet":
+            pass
         else:
             print(f"button_id: {button_id}\n not handled, doing nothing ")
             raise PreventUpdate
