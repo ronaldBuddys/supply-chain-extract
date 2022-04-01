@@ -253,15 +253,20 @@ if __name__ == "__main__":
 
     ltsn = [i for i in client["news_articles"]["long_to_short_name"].find()]
     ltsn_map = {i["long_name"]: i["short_names"] for i in ltsn if len(i["short_names"]) > 0}
+    client.close()
 
     # ---
     # read in value chain data / knowledge base
     # ---
 
-    vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
+    print('getting knowledge base')
+    # vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
+    # vc.drop("_id", axis=1, inplace=True)
+    # vc.to_csv(get_data_path("VCHAINS.csv"), index=False)
+    vc = pd.read_csv(get_data_path("VCHAINS.csv"))
 
     # there are some missing comany names? exclude those
-    vc = vc.loc[~pd.isnull(vc['Company Name'])]
+    # vc = vc.loc[~pd.isnull(vc['Company Name'])]
 
     kb = get_knowledge_base_from_value_chain_data(vc)
 
@@ -285,7 +290,8 @@ if __name__ == "__main__":
     # TODO: there could be more than one short name - these should be handled correctly
     #  - namely names should be change to the shortest of all the names
 
-    all_names = np.unique(np.concatenate([v["names_in_text"] for k, v in articles.items()]))
+    all_names = np.unique(np.concatenate([v["names_in_text"]
+                                          for k, v in articles.items()]))
 
     short_name_map = niave_long_to_short_name(all_names)
 
@@ -298,6 +304,8 @@ if __name__ == "__main__":
         short_name_map[k].sort(key=lambda x: len(x))
         short_name_map[k] = short_name_map[k][::-1]
 
+    # for each article - replace the longer names with the short names
+    # and store the long_to_short_names mapping (dict)
     for i, _ in enumerate(articles.items()):
         k, v = _
         if i % 1000 == 0:
@@ -312,6 +320,7 @@ if __name__ == "__main__":
         # - NOTE: some other names may have been mapped
         articles[k]["long_to_short_names"] = replace_dict
 
+    print("taking only articles with more than one (long) to short name")
     articles = {k: articles[k]
                 for k, v in articles.items()
                 if len(v['long_to_short_names']) > 1}
@@ -319,17 +328,7 @@ if __name__ == "__main__":
     keys = list(articles.keys())
 
     # ---
-    # remove text between () and {} - this should be optional
-    # ---
-
-
-    # TODO: remove "F2 percent" ? LMT;-PCTCHNG:2} ?
-    for k in articles.keys():
-
-        pass
-
-    # ---
-    # remove carriage returns - to better seperate sentences
+    # remove carriage returns - to better separate sentences
     # ---
 
     for k in articles.keys():
@@ -456,6 +455,9 @@ if __name__ == "__main__":
                 right_end_char = sent_list[eloc].end_char
                 full_sentence = text[left_start_char: right_end_char]
 
+                #
+                date_pub = v["date_publish"]
+
                 # store results in a list
                 # - as a dict so can
                 # TODO: perhaps include sentence range
@@ -465,8 +467,12 @@ if __name__ == "__main__":
                        "relation": rel,
                        "entity1_full": e1,
                        "entity2_full": e2,
+                       "start_sent": int(sloc),
+                       "end_sent": int(eloc),
                        "num_sentence": int((eloc - sloc) + 1),
-                       "article": k}
+                       "article": k,
+                       "date_publish": v["date_publish"],
+                       "source_domain": v["source_domain"]}
 
                 out.append(res)
 
