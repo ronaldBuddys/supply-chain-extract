@@ -219,6 +219,36 @@ def list_to_text(l):
     out = ", ".join(l)
     return out
 
+
+def increment_idx(idx_range, cur_idx, action):
+    """
+    given an allowed (integer) index range
+    and a current index value, increment to the next, prev, or random value
+    in the index range
+    """
+    # require the current index value in range
+    if cur_idx not in idx_range:
+        print(f"cur_idx: {cur_idx} is not in provided idx_range, will return first value in idx_range")
+        return idx_range[0]
+
+    if action == "None":
+        return cur_idx
+    elif action == "Next":
+        next_idx = np.argmax(cur_idx == idx_range) + 1
+        if next_idx >= len(idx_range):
+            next_idx = 0
+        return idx_range[next_idx]
+    elif action == "Prev":
+        prev_idx = np.argmax(cur_idx == idx_range) - 1
+        if prev_idx < 0:
+            prev_idx = len(idx_range) - 1
+        return idx_range[prev_idx]
+    elif action == "Random":
+        return np.random.choice(idx_range, 1)[0]
+    else:
+        print(f"action: {action} was not understood returning cur_idx: {cur_idx}")
+        return cur_idx
+
 # ---
 # app layout
 # ---
@@ -633,13 +663,6 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
         print(b.sum())
         select_bool = select_bool & b
 
-    if ul is not None:
-        if ul == "True":
-            print(f"only will show unlabelled text")
-            b = pd.isnull(df["gold_label"]).values
-            print(b.sum())
-            select_bool = select_bool & b
-
     # HARDCODED: for now only show entries with no gold label
 
     print(f"return: {select_bool.sum()} values")
@@ -653,24 +676,38 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
     # select data
     tmp = df.loc[select_bool]
 
+    # select only unlabelled data?
+    if ul is not None:
+        if ul == "True":
+            print(f"only will show unlabelled text")
+            possible_idx = pd.isnull(tmp["gold_label"]).values
+        else:
+            possible_idx = np.ones(len(tmp), dtype=bool)
+
+    # select possible (integer) index values
+    idx_range = np.arange(len(tmp))
+    idx_range = idx_range[possible_idx]
+
+    if len(idx_range) == 0:
+        print("the selection to strict! can't do anything, preventing update")
+        raise PreventUpdate
+
+    # TODO: be more sensible with cr_idx being string
+    #  - convert immediately when passed into function and right before passed out only
+
     # HACK: to make sure current index is in range
     try:
         _ = tmp.iloc[int(cr_idx)]["id"]
-    except:
-        cr_idx = str(0)
+    except Exception as e:
+        print(e)
+        # cr_idx = str(0)
+        cr_idx = str(idx_range[0])
 
     # if selection generated the callback
     if button_id in selection_buttons:
         # set current index values to zero
-        cr_idx = str(0)
-        # get the gold label from database
-        # cur_id = tmp.iloc[int(cr_idx)]["id"]
-        # _ = art_db["gold_labels"].find_one(filter={"label_id": cur_id})
-        # # could be None if it's a new sentence
-        # if _ is None:
-        #     glabel = None
-        # else:
-        #     glabel = _.get("gold_label", None)
+        # cr_idx = str(0)
+        cr_idx = str(idx_range[0])
 
     # otherwise, a iteration button has been clicked
     else:
@@ -721,43 +758,41 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
             glc = str(int(glc) + 1)
             print(f"new gold label count: {glc}")
 
-            # TODO: avoid the duplicate code
-            if aal == "None":
-                pass
-            elif aal == "Next":
-                cr_idx = int(cr_idx) + 1
-                # allow for wrapping around
-                cr_idx = 0 if cr_idx >= len(tmp) else cr_idx
-            elif aal == "Prev":
-                cr_idx = int(cr_idx) - 1
-                # allow for wrapping around
-                cr_idx = len(tmp) -1 if cr_idx < 0 else cr_idx
-            elif aal == "Random":
-                cr_idx = np.random.choice(np.arange(len(tmp)))
+            # get the next (integer) index value
+            cr_idx = increment_idx(idx_range, int(cr_idx), action = aal)
+            cr_idx = str(cr_idx)
+            # # TODO: avoid the duplicate code
+            # TODO: remove this
+            # if aal == "None":
+            #     pass
+            # elif aal == "Next":
+            #     cr_idx = int(cr_idx) + 1
+            #     # allow for wrapping around
+            #     cr_idx = 0 if cr_idx >= len(tmp) else cr_idx
+            # elif aal == "Prev":
+            #     cr_idx = int(cr_idx) - 1
+            #     # allow for wrapping around
+            #     cr_idx = len(tmp) -1 if cr_idx < 0 else cr_idx
+            # elif aal == "Random":
+            #     cr_idx = np.random.choice(np.arange(len(tmp)))
 
             # TODO: here decide if want to auto change sentence (randomly)
 
         elif button_id in ["prev_btn", "next_btn", "rnd_btn"]:
             print("changing sentence")
             if button_id == "prev_btn":
-                cr_idx = int(cr_idx) - 1
-                # allow for wrapping around
-                cr_idx = len(tmp) -1 if cr_idx < 0 else cr_idx
-
+                cr_idx = increment_idx(idx_range, int(cr_idx), action = "Prev")
             elif button_id == "next_btn":
-                cr_idx = int(cr_idx) + 1
-                # allow for wrapping around
-                cr_idx = 0 if cr_idx >= len(tmp) else cr_idx
+                cr_idx = increment_idx(idx_range, int(cr_idx), action = "Next")
             else:
-                # print("random button")
-                # TODO: if picking random need to update pc and ps
-                cr_idx = np.random.choice(np.arange(len(tmp)))
+                cr_idx = increment_idx(idx_range, int(cr_idx), action = "Random")
+            # convert to string
+            cr_idx = str(cr_idx)
         elif button_id in "No clicks yet":
             pass
         else:
             print(f"button_id: {button_id}\n not handled, doing nothing ")
             raise PreventUpdate
-
 
 
     # select sentence
@@ -779,6 +814,7 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
     cur_id = tmp.iloc[int(cr_idx)]["id"]
     _ = art_db["gold_labels"].find_one(filter={"label_id": cur_id})
 
+    print(f"cur_id: {cur_id}")
     # TODO: fix this / tidy up: trying to handle missing
     _ = {} if _ is None else _
     glabel = _.get("gold_label", "no label provided yet")
@@ -801,9 +837,10 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
     e1_color = [{'word': "{%s}" % e1, "style": {"backgroundColor": "#6190ff", 'display': 'inline-block'} }]
     e2_color = [{'word': "[%s]" % e2, "style": {"backgroundColor": "yellow", 'display': 'inline-block'} }]
 
-    # add brackts to current text
-    cur_sent = re.sub(e1, "{%s}" % e1, cur_sent)
-    cur_sent = re.sub(e2, "[%s]" % e2, cur_sent)
+    # add brackets to current text
+    #
+    cur_sent = re.sub(f"{e1}", "{%s}" % e1, cur_sent)
+    cur_sent = re.sub(f"{e2}", "[%s]" % e2, cur_sent)
 
     formated_text = text_to_dash_html(cur_sent,
                                       color_text=e1_color+e2_color)
