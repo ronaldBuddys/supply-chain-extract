@@ -708,32 +708,7 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
             # increment the gold label count
             glc = str(int(glc) + 1)
             print(f"new gold label count: {glc}")
-            # --
-            # get th gold label count - for sentence id's in df
-            # --
-            #  # this is too slow to run?
-            # print("about to run pipe line...")
-            # pipeline = [
-            #     {
-            #         "$match":
-            #             {
-            #                 "label_id": {"$in": df['ids'].values.tolist()}
-            #             }
-            #     },
-            #     {
-            #         "$count": "has gold label"
-            #     }
-            # ]
-            #
-            # t0 = time.time()
-            # gl_count = list(art_db["gold_labels"].aggregate(pipeline))
-            # t1 = time.time()
-            # print(f'time to run gold label count query: {t1-t0:.2f} s')
-            # glc = str(gl_count[0]['has gold label'])
-            # print(glc)
-            #
-            # print("summary count made")
-            # action after label
+
             # TODO: avoid the duplicate code
             if aal == "None":
                 pass
@@ -750,7 +725,7 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
 
             # TODO: here decide if want to auto change sentence (randomly)
 
-        else:
+        elif button_id in ["prev_btn", "next_btn", "rnd_btn"]:
             print("changing sentence")
             if button_id == "prev_btn":
                 cr_idx = int(cr_idx) - 1
@@ -765,8 +740,11 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
                 # print("random button")
                 # TODO: if picking random need to update pc and ps
                 cr_idx = np.random.choice(np.arange(len(tmp)))
+        else:
+            print(f"button_id: {button_id}\n not handled, doing nothing ")
+            raise PreventUpdate
 
-    # page_count = (len(tmp) // ps)
+
 
     # select sentence
     # HACK: to avoid cr_idx being out of range
