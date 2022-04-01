@@ -113,6 +113,9 @@ test_map = {"train": 0, "val": 1, "test": 2}
 # HARDCODED: taking only test data
 df = split_data.loc[split_data['split'] == test_map["test"]]
 
+# shuffle values - so can use Next and Prev
+df = df.sample(frac=1)
+
 # HARDCODED: for now just get the test data
 # ids = split_data.loc[split_data['split'] == test_map["test"], "id"].values
 
@@ -696,8 +699,17 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
                 raise PreventUpdate
 
             print(f"setting gold label as {glabel}")
+
+            try:
+                user_name = os.getlogin()
+            except Exception as e:
+                print(e)
+                print("will use user_name = 'unknown'")
+                user_name = "unknown"
+
             art_db['gold_labels'].update_one(filter={"label_id": cur_id},
-                                             update={"$set": {"gold_label": glabel}},
+                                             update={"$set": {"gold_label": glabel,
+                                                              "labeller": user_name}},
                                              upsert=True)
 
             print("setting label stored locally")
