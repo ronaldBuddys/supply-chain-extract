@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import json
+import time
 import pandas as pd
 import numpy as np
 
@@ -81,6 +82,7 @@ vc = pd.read_csv(get_data_path("VCHAINS.csv"))
 # get knowledge base
 kb = get_knowledge_base_from_value_chain_data(vc)
 
+print("kb built")
 # ---
 # read in full_sentences store locally
 # ---
@@ -119,9 +121,12 @@ df = split_data.loc[split_data['split'] == test_map["test"]]
 
 # read the current gold_labels from the database - for the given splits
 filter = {"label_id": {"$in": [i for i in df["id"]]}}
+t0 = time.time()
 gl_tmp = list(art_db['gold_labels'].find(filter=filter))
 gl_tmp = pd.DataFrame(gl_tmp)
 gl_tmp.drop("_id", axis=1, inplace=True)
+t1 = time.time()
+print(f"time to get all gold labels : {t1-t0:.2f} seconds")
 
 pre_merge = len(df)
 
@@ -158,6 +163,8 @@ text_color = "#1314fc"
 # ---
 # helper functions - review: these aren't being used?
 # ---
+
+print("helper functions")
 
 def replace_with_html(text, split_word, replace_with):
     # split the text on the given 'split_word'
@@ -213,6 +220,8 @@ def list_to_text(l):
 # app layout
 # ---
 
+print("options for layout")
+
 # TODO: consider using long names here?
 # TODO: in entities put (count)
 entity1_options = [{'label': i, 'value': i} for i in np.sort(df['entity1_full'].unique())]
@@ -235,8 +244,6 @@ info_col = ["entity1", "entity2", "entity1_full", "entity2_full",
             "num_sentence", "sentence_range", "num_chars", "epair_count"]
 if "companies_in_text" in df.columns:
     info_col.append("companies_in_text")
-
-
 
 
 # format some of the float columns
@@ -272,6 +279,8 @@ question_text = text_to_dash_html(question_text,
 # info_col = [v for k, v in rename_map.items()]
 # df.rename(columns=rename_map, inplace=True)
 info_table_columns = [{"id": c, "name": re.sub("_| ", "\n", c)} for c in info_col]
+
+print("app layout")
 
 app.layout = html.Div([
 
@@ -455,8 +464,9 @@ app.layout = html.Div([
             html.Button("Not Specified", id="norel_btn", style={"margin-left": "15px"}),
             html.Button("Unsure", id="unsure_btn", style={"margin-left": "15px"}),
             html.Button("Partnership", id="prtnr_btn", style={"margin-left": "15px"}),
-            html.Button("Rival/Competitor", id="compet_btn", style={"margin-left": "15px"}),
-            html.Button("Owner/Subsidiary", id="owner_btn", style={"margin-left": "15px"})
+            html.Button("Competitor", id="compet_btn", style={"margin-left": "15px"}),
+            html.Button("Owner", id="owner_btn", style={"margin-left": "15px"}),
+            html.Button("Reverse", id="rvrsd_btn", style={"margin-left": "15px"})
         ], style={'width': '100%', 'display': 'flex', 'align-items': 'left'})
     ], className="row"),
 
@@ -520,6 +530,8 @@ app.layout = html.Div([
 # callbacks
 # ----
 
+print("callbacks")
+
 @app.callback([Output("table_sent_info", "data"),
                # Output("table-dropdown", "page_count"),
                Output("current_sent", "children"),
@@ -539,6 +551,7 @@ app.layout = html.Div([
                Input('prtnr_btn', 'n_clicks'),
                Input('compet_btn', 'n_clicks'),
                Input('owner_btn', 'n_clicks'),
+               Input('rvrsd_btn', 'n_clicks'),
                Input('next_btn', 'n_clicks'),
                Input('prev_btn', 'n_clicks'),
                Input('rnd_btn', 'n_clicks'),
@@ -551,7 +564,7 @@ app.layout = html.Div([
                    # State("table-dropdown", "page_size"),
              ])
 def available_titles(e1, e2, rel, wl, ns, ep, ul,
-                     s_btn, nr_btn, us_btn, pt_btn, cmp_btn, own_btn, nx_btn, pv_btn, rn_btn,
+                     s_btn, nr_btn, us_btn, pt_btn, cmp_btn, own_btn, rvs_btn, nx_btn, pv_btn, rn_btn,
                      # pc, ps,
                      cr_idx, glc, aal):
 
@@ -658,7 +671,8 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
 
     # otherwise, a iteration button has been clicked
     else:
-        if button_id in ["supply_btn", "norel_btn", "unsure_btn", "prtnr_btn"]:
+        if button_id in ["supply_btn", "norel_btn", "unsure_btn", "prtnr_btn",
+                         "compet_btn", "rvrsd_btn", "owner_btn"]:
             # TODO: here should confirm status - and write to data
             cur_id = tmp.iloc[int(cr_idx)]["id"]
             print(f"current sentence id: {cur_id}")
@@ -675,6 +689,8 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
                 glabel = "owner"
             elif button_id == "compet_btn":
                 glabel = "competitor"
+            elif button_id == "rvrsd_btn":
+                glabel = "reverse"
             else:
                 print(f"button: {button_id}\nnot understood, preventing update")
                 raise PreventUpdate
@@ -684,14 +700,39 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
                                              update={"$set": {"gold_label": glabel}},
                                              upsert=True)
 
+            print("setting label stored locally")
+
             # update value in dataframe
             df.loc[df['id'] == cur_id, "gold_label"] = glabel
 
             # increment the gold label count
             glc = str(int(glc) + 1)
-
-
-
+            print(f"new gold label count: {glc}")
+            # --
+            # get th gold label count - for sentence id's in df
+            # --
+            #  # this is too slow to run?
+            # print("about to run pipe line...")
+            # pipeline = [
+            #     {
+            #         "$match":
+            #             {
+            #                 "label_id": {"$in": df['ids'].values.tolist()}
+            #             }
+            #     },
+            #     {
+            #         "$count": "has gold label"
+            #     }
+            # ]
+            #
+            # t0 = time.time()
+            # gl_count = list(art_db["gold_labels"].aggregate(pipeline))
+            # t1 = time.time()
+            # print(f'time to run gold label count query: {t1-t0:.2f} s')
+            # glc = str(gl_count[0]['has gold label'])
+            # print(glc)
+            #
+            # print("summary count made")
             # action after label
             # TODO: avoid the duplicate code
             if aal == "None":
