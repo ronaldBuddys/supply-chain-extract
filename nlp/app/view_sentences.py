@@ -264,7 +264,7 @@ wl_options = [{'label': i, 'value': i} for i in np.sort(df['weak_label'].unique(
 
 num_sent_options = [{'label': i, 'value': i} for i in np.sort(df['num_sentence'].unique())]
 epair_options = [{'label': i, 'value': i} for i in np.sort(df['epair_count'].unique())]
-ulabel_options = [{'label': i, 'value': i} for i in ["True", "False"]]
+ulabel_options = [{'label': i, 'value': i} for i in ["True", "False", "Only Labelled"]]
 
 
 # previous column selection
@@ -444,28 +444,28 @@ app.layout = html.Div([
     ], className='row'),
 
     # --
-    # global label / count / after action
+    # global label / current position / after action
     # --
     html.Div([
         html.Div([
             html.Label(f"Gold Label Count:", style={'color': "yellow", "font-weight": "bold"}),
             html.P(str(gl_count), id="gold_label_count"),
         ], className="twoColumns", style={"display": 'inline-block'}),
-        # html.Div([
-        #     html.Label("Current Gold Label:", style={'color': 'yellow',
-        #                                              'textAlign': 'left',
-        #                                              "font-weight": "bold"}),
-        #     html.P(id="gold_label_value"),
-        # ], className="twoColumns", style={"margin-left": "15px", "display": 'inline-block'}),
+        html.Div([
+            html.Label("pos. / # filtered"),
+            html.Div(children="0/0", id="relative_index"),
+            html.Div(children="0", id="current_index", style={'display': 'none'}),
+        ], className="twoColumns", style={"display": 'inline-block', "margin-left": "15px"}),
         html.Div([
             html.Label("Action After Label", style={"font-weight": "bold"}),
             dcc.Dropdown(
                 options=act_after_label_opts,
                 id="act_after_label",
-                value="None",
+                value="Next",
                 style={"display": 'inline-block'}
             )
-        ], className="twoColumns", style={"display": 'inline-block', "margin-left": "15px"})
+        ], className="twoColumns", style={"display": 'inline-block', "margin-left": "15px"}),
+
     ], className="row"),
 
     # Navigation buttons
@@ -522,41 +522,17 @@ app.layout = html.Div([
                                              "margin-left": "15px"}),
     ], className="row"),
 
+
     html.Div([
 
         html.Div([
             html.P(children="text goes here", id="current_sent"),
-            html.Div(children="0", id="current_index", style={'display': 'none'}),
+            # html.Div(children="0", id="current_index"),# style={'display': 'none'}),
         ], className="eightColumns"),
 
 
     ], className="row"),
 
-    # other sentences
-    # html.H6(children='More Sentences',
-    #         style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"}),
-    #
-    # html.Div([
-    #     dash_table.DataTable(
-    #         id='table-dropdown',
-    #         data=df.loc[:100, select_col].to_dict('records'),
-    #         columns=table_columns,
-    #         editable=True,
-    #         style_data={
-    #             'whiteSpace': 'normal',
-    #             'height': 'auto',
-    #         },
-    #         style_cell_conditional=[
-    #             {
-    #                 'if': {'column_id': 'text'},
-    #                 'textAlign': 'left'
-    #             }
-    #         ],
-    #         page_current=0,
-    #         page_size=10,
-    #         page_action="custom",
-    #     )
-    # ], className='row')
 ], style={'backgroundColor': '#DCDCDC'})
 
 # ----
@@ -570,7 +546,8 @@ print("callbacks")
                Output("current_sent", "children"),
                Output("current_index", "children"),
                Output("gold_label_value", "children"),
-               Output("gold_label_count", "children")],
+               Output("gold_label_count", "children"),
+               Output("relative_index", "children")],
               [Input('entity1_select', 'value'),
                Input('entity2_select', 'value'),
                Input('relation_select', 'value'),
@@ -578,6 +555,7 @@ print("callbacks")
                Input('num_sent_select', 'value'),
                Input('epair_select', 'value'),
                Input('ulabel_select', 'value'),
+               # labelling buttons from here
                Input('supply_btn', 'n_clicks'),
                Input('norel_btn', 'n_clicks'),
                Input('unsure_btn', 'n_clicks'),
@@ -585,6 +563,7 @@ print("callbacks")
                Input('compet_btn', 'n_clicks'),
                Input('owner_btn', 'n_clicks'),
                Input('rvrsd_btn', 'n_clicks'),
+               # navigation buttons from here
                Input('next_btn', 'n_clicks'),
                Input('prev_btn', 'n_clicks'),
                Input('rnd_btn', 'n_clicks'),
@@ -597,7 +576,8 @@ print("callbacks")
                    # State("table-dropdown", "page_size"),
              ])
 def available_titles(e1, e2, rel, wl, ns, ep, ul,
-                     s_btn, nr_btn, us_btn, pt_btn, cmp_btn, own_btn, rvs_btn, nx_btn, pv_btn, rn_btn,
+                     s_btn, nr_btn, us_btn, pt_btn, cmp_btn, own_btn, rvs_btn,
+                     nx_btn, pv_btn, rn_btn,
                      # pc, ps,
                      cr_idx, glc, aal):
 
@@ -681,8 +661,15 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
         if ul == "True":
             print(f"only will show unlabelled text")
             possible_idx = pd.isnull(tmp["gold_label"]).values
-        else:
+        elif ul == "False":
             possible_idx = np.ones(len(tmp), dtype=bool)
+        elif ul == "Only Labelled":
+            print(f"only will show unlabelled text")
+            possible_idx = ~pd.isnull(tmp["gold_label"]).values
+        else:
+            print("unlabelled text option not understood")
+            print(ul)
+            raise PreventUpdate
 
     # select possible (integer) index values
     idx_range = np.arange(len(tmp))
@@ -761,22 +748,6 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
             # get the next (integer) index value
             cr_idx = increment_idx(idx_range, int(cr_idx), action = aal)
             cr_idx = str(cr_idx)
-            # # TODO: avoid the duplicate code
-            # TODO: remove this
-            # if aal == "None":
-            #     pass
-            # elif aal == "Next":
-            #     cr_idx = int(cr_idx) + 1
-            #     # allow for wrapping around
-            #     cr_idx = 0 if cr_idx >= len(tmp) else cr_idx
-            # elif aal == "Prev":
-            #     cr_idx = int(cr_idx) - 1
-            #     # allow for wrapping around
-            #     cr_idx = len(tmp) -1 if cr_idx < 0 else cr_idx
-            # elif aal == "Random":
-            #     cr_idx = np.random.choice(np.arange(len(tmp)))
-
-            # TODO: here decide if want to auto change sentence (randomly)
 
         elif button_id in ["prev_btn", "next_btn", "rnd_btn"]:
             print("changing sentence")
@@ -845,13 +816,18 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
     formated_text = text_to_dash_html(cur_sent,
                                       color_text=e1_color+e2_color)
 
+    rl_idx = np.argmax(int(cr_idx) == idx_range)
+
+    # the current position of those filtered
+    rl_pos = f"{rl_idx} / {len(idx_range)}"
 
     # page_count, \
     return tmp.iloc[[select_range]][info_col].to_dict('records'), \
            formated_text,  \
            str(cr_idx), \
            glabel,\
-           glc
+           glc, \
+           rl_pos
 
 
 if __name__ == "__main__":
