@@ -36,6 +36,19 @@ from nlp import get_configs_path, get_data_path
 pd.set_option("display.max_columns", 200)
 pd.set_option("display.max_colwidth", 70)
 
+
+# --
+# try getting user named
+# --
+
+try:
+    user_name = os.getlogin()
+except Exception as e:
+    print(e)
+    print("will use user_name = 'unknown'")
+    user_name = "unknown"
+
+
 # ---
 # connect to database
 # ---
@@ -52,26 +65,6 @@ client = get_database(username=mdb_cred["username"],
 
 art_db = client["news_articles"]
 
-# ---
-# read in gold labels
-# ---
-
-# get a count of number of gold labels
-# pipeline = [
-#     {
-#         "$match":
-#             {
-#                 "gold_label": {"$ne": None}
-#             }
-#     },
-#     {
-#         "$count": "has gold label"
-#     }
-# ]
-#
-# gl_count = list(art_db["gold_labels"].aggregate(pipeline))
-# gl_count = gl_count[0]["has gold label"]
-#
 
 # ---
 # read in value chain data / knowledge base
@@ -289,6 +282,11 @@ for ffc in format_float_cols:
 act_after_label = ["None", "Next", "Prev", "Random"]
 act_after_label_opts = [{'label': i, "value": i} for i in act_after_label]
 
+# gold label options
+gl_opt_list = ["Supplier", "NA", "unsure", "partnership", "owner", "competitor", "reverse"]
+gl_opt = [{'label': i, "value": i} for i in gl_opt_list]
+# add None - not needed - could use select unlabelled
+# gl_opt.append({"label": "None", "values": None})
 
 # --
 # reminder text - with colors added
@@ -316,15 +314,6 @@ info_table_columns = [{"id": c, "name": re.sub("_| ", "\n", c)} for c in info_co
 print("app layout")
 
 app.layout = html.Div([
-
-    # Header
-    # html.Div([
-    #     # app 'name'
-    #     html.H1(children='Text Labeller',
-    #             style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"},
-    #             className='twelve columns'),
-    # ], className='row'),
-    #
 
     html.Div([
         html.H3(children='Main Selection',
@@ -408,6 +397,15 @@ app.layout = html.Div([
                 options=ulabel_options,
                 # placeholder="select max. # ",
                 value="False",
+                style={'fontSize': '12px'}),
+        ], className="three columns"),
+        html.Div([
+            html.Label("gold label values"),
+            dcc.Dropdown(
+                id='glabel_select',
+                options=gl_opt,
+                placeholder="select gold label",
+                # value="False",
                 style={'fontSize': '12px'}),
         ], className="three columns"),
     ], className='row'),
@@ -555,6 +553,7 @@ print("callbacks")
                Input('num_sent_select', 'value'),
                Input('epair_select', 'value'),
                Input('ulabel_select', 'value'),
+               Input('glabel_select', 'value'),
                # labelling buttons from here
                Input('supply_btn', 'n_clicks'),
                Input('norel_btn', 'n_clicks'),
@@ -575,7 +574,7 @@ print("callbacks")
                 State("act_after_label", "value")
                    # State("table-dropdown", "page_size"),
              ])
-def available_titles(e1, e2, rel, wl, ns, ep, ul,
+def available_titles(e1, e2, rel, wl, ns, ep, ul, gl_sel,
                      s_btn, nr_btn, us_btn, pt_btn, cmp_btn, own_btn, rvs_btn,
                      nx_btn, pv_btn, rn_btn,
                      # pc, ps,
@@ -603,7 +602,8 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
         'weak_label_select',
         'num_sent_select',
         'epair_select',
-        'ulabel_select'
+        'ulabel_select',
+        'glabel_select'
     ]
 
     # TODO: allow for multiple values
@@ -643,6 +643,12 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
         print(b.sum())
         select_bool = select_bool & b
 
+    if gl_sel is not None:
+        print(f"selecting gold labels: {gl_sel}")
+        b = (df['gold_label'] == gl_sel)
+        print(b.sum())
+        select_bool = select_bool & b
+
     # HARDCODED: for now only show entries with no gold label
 
     print(f"return: {select_bool.sum()} values")
@@ -670,6 +676,8 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
             print("unlabelled text option not understood")
             print(ul)
             raise PreventUpdate
+    else:
+        possible_idx = np.ones(len(tmp), dtype=bool)
 
     # select possible (integer) index values
     idx_range = np.arange(len(tmp))
@@ -687,6 +695,7 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
         _ = tmp.iloc[int(cr_idx)]["id"]
     except Exception as e:
         print(e)
+        print("taking first index in range")
         # cr_idx = str(0)
         cr_idx = str(idx_range[0])
 
@@ -723,13 +732,6 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul,
                 raise PreventUpdate
 
             print(f"setting gold label as {glabel}")
-
-            try:
-                user_name = os.getlogin()
-            except Exception as e:
-                print(e)
-                print("will use user_name = 'unknown'")
-                user_name = "unknown"
 
             art_db['gold_labels'].update_one(filter={"label_id": cur_id},
                                              update={"$set": {"gold_label": glabel,
