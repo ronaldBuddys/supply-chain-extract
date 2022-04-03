@@ -361,8 +361,11 @@ if __name__ == "__main__":
     NO_REL = 0
     ABSTAIN = -1
 
+    # TODO: revise these by doing some analysis on gold_labels (with sentences)
     # TODO: review if it matters having some of these separate
     # TODO: consider using
+
+    # using a leading ' ' is to avoid matching in the middle of words
 
     @labeling_function()
     def regex_supply(x):
@@ -386,11 +389,19 @@ if __name__ == "__main__":
 
     @labeling_function()
     def regex_make(x):
-        return SUPPLIER if re.search(r" make | makes |maker", x.text, flags=re.I) else ABSTAIN
+        return SUPPLIER if re.search(r" make | makes | maker", x.text, flags=re.I) else ABSTAIN
+
+    @labeling_function()
+    def regex_made(x):
+        return SUPPLIER if re.search(r" made by| made for", x.text, flags=re.I) else ABSTAIN
 
     @labeling_function()
     def regex_sells(x):
         return SUPPLIER if re.search(r" sell | sells | seller ", x.text, flags=re.I) else ABSTAIN
+
+    @labeling_function()
+    def regex_sales(x):
+        return SUPPLIER if re.search(r" sales", x.text, flags=re.I) else ABSTAIN
 
     @labeling_function()
     def regex_provides(x):
@@ -410,7 +421,29 @@ if __name__ == "__main__":
 
     @labeling_function()
     def regex_order(x):
-        return SUPPLIER if re.search(r" order", x.text, flags=re.I) else ABSTAIN
+        return SUPPLIER if re.search(r" order| ordered", x.text, flags=re.I) else ABSTAIN
+
+    @labeling_function()
+    def regex_agreement(x):
+        return SUPPLIER if re.search(r" agreement", x.text, flags=re.I) else ABSTAIN
+
+
+    @labeling_function()
+    def regex_offer(x):
+        return SUPPLIER if re.search(r" offer", x.text, flags=re.I) else ABSTAIN
+
+    @labeling_function()
+    def regex_serves(x):
+        return SUPPLIER if re.search(r" serve| serves", x.text, flags=re.I) else ABSTAIN
+
+    @labeling_function()
+    def regex_deliver(x):
+        return SUPPLIER if re.search(r" delivered| delivers", x.text, flags=re.I) else ABSTAIN
+
+    @labeling_function()
+    def regex_used_by(x):
+        return SUPPLIER if re.search(r" used by", x.text, flags=re.I) else ABSTAIN
+
 
     @labeling_function()
     def relation_na(x):
@@ -421,26 +454,47 @@ if __name__ == "__main__":
     def astrix_count(x):
         """reuters specific - if there are many *'s (more than 1) assume
         they represent bullet points - which are often unrelated (new bulletins)"""
-        return NO_REL if len(re.findall("\*", x.text)) > 1 else ABSTAIN
+        return NO_REL if len(re.findall("\* ", x.text)) >= 2 else ABSTAIN
+
+    @labeling_function()
+    def dash_count(x):
+        """reuters specific - if there are many *'s (more than 1) assume
+        they represent bullet points - which are often unrelated (new bulletins)"""
+        return NO_REL if len(re.findall(" - ", x.text)) >= 3 else ABSTAIN
+
+    @labeling_function()
+    def dollar_sign_count(x):
+        """reuters specific - if there are many *'s (more than 1) assume
+        they represent bullet points - which are often unrelated (new bulletins)"""
+        return NO_REL if len(re.findall("\$ ", x.text)) >= 4 else ABSTAIN
+
+    @labeling_function()
+    def arrow_count(x):
+        """sometimes > are used for bullets, which are short, unrelated market comments"""
+        return NO_REL if len(re.findall(" >", x.text)) >= 2 else ABSTAIN
+
+    @labeling_function()
+    def cap_q_count(x):
+        """if there are many capital Q's in article then it's probably an earnings report"""
+        return NO_REL if len(re.findall(" Q", x.text)) >= 10 else ABSTAIN
+
+    @labeling_function()
+    def percent_symbol_count(x):
+        """articles with many % symbols are often market commentary"""
+        return NO_REL if len(re.findall(" \%", x.text)) >= 2 else ABSTAIN
+
+    @labeling_function()
+    def percent_word_count(x):
+        """articles with the word percent many time are often market commentary"""
+        return NO_REL if len(re.findall(" percent", x.text, re.IGNORECASE)) >= 3 else ABSTAIN
+
 
     @labeling_function()
     def companies_in_text(x):
         """consider only the number of sentence e2 is in, with the idea the fewer the better
-        - less popular suggests a relationship will be mentioned?"""
+        - less popular suggests a relationship will be mentioned?
+        NOTE: often all companies are not identified (using our KB) """
         return NO_REL if x.companies_in_text >= 5 else ABSTAIN
-
-
-
-    # @labeling_function()
-    # def e1_and_e2_sentence_count(x):
-    #     """if supplier and e1 and e2 occur a lot then abstain """
-    #     if x.relation == "Supplier":
-    #         if (x.e2_count > e2_count_q) & (x.e1_count > e1_count_q):
-    #             return ABSTAIN
-    #         else:
-    #             return SUPPLIER
-    #     else:
-    #         return ABSTAIN
 
 
     @labeling_function()
@@ -462,6 +516,18 @@ if __name__ == "__main__":
         return SUPPLIER if (x.e2_count < e2_count_quantile) & (x.relation == "Supplier") else ABSTAIN
 
 
+    # @labeling_function()
+    # def e1_and_e2_sentence_count(x):
+    #     """if supplier and e1 and e2 occur a lot then abstain """
+    #     if x.relation == "Supplier":
+    #         if (x.e2_count > e2_count_q) & (x.e1_count > e1_count_q):
+    #             return ABSTAIN
+    #         else:
+    #             return SUPPLIER
+    #     else:
+    #         return ABSTAIN
+
+
     # ---
     # combine label functions
     # ----
@@ -473,14 +539,25 @@ if __name__ == "__main__":
         regex_buys,
         regex_customer,
         regex_make,
+        regex_made,
         regex_sells,
         regex_provides,
         regex_produces,
         regex_contract,
         regex_order,
+        regex_deliver,
+        regex_used_by,
+        regex_agreement,
+        regex_offer,
         regex_shipments,
         relation_na,
         astrix_count,
+        arrow_count,
+        dash_count,
+        dollar_sign_count,
+        cap_q_count,
+        percent_symbol_count,
+        percent_word_count,
         companies_in_text,
         epair_count,
         e2_sentence_count
@@ -505,12 +582,12 @@ if __name__ == "__main__":
     # generate weak labels
     # ---
 
-    # majority_model = MajorityLabelVoter()
-    # preds_train_mm = majority_model.predict(L=L_train)
+    majority_model = MajorityLabelVoter()
+    preds_train = majority_model.predict(L=L_train)
 
     # using LabelModel
     label_model = LabelModel(cardinality=2, verbose=True)
-    label_model.fit(L_train=L_train, n_epochs=500, log_freq=100, seed=123)
+    label_model.fit(L_train=L_train, n_epochs=550, log_freq=100, seed=123)
 
     preds_train = label_model.predict(L=L_train)
 
@@ -523,6 +600,19 @@ if __name__ == "__main__":
     # write to file
     # TODO: consider adding transformations
     # out["num_sentence"] += 1
+
+
+    # # REMOVE THIS
+    # probs_train = label_model.predict_proba(L_train)
+    #
+    # # include the prob
+    # df_train["prob_label"] = probs_train[:,1]
+    # res = df_train.to_dict("records")
+    #
+    # from nlp import get_data_path
+    # with open(get_data_path("weak_label_temp.json"), "w") as f:
+    #     json.dump(res, f, indent=4)
+    #
 
 
 
