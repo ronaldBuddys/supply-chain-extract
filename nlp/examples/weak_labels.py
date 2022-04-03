@@ -63,59 +63,28 @@ if __name__ == "__main__":
 
     # TODO: should really store parameters (and label function names) used to generate weak labels
 
-    max_sentence_number = 3
-
-    max_characters = 500
-
-    min_conf_score_for_supplier = 0.9
+    # input sentence file
+    sent_file = get_data_path("processed_sentences.json")
 
     # this can be None
     # class_balance = [0.9, 0.1]
     class_balance = None
 
-    output_file = get_data_path("weak_labels.csv")
+    # output file
+    output_file = get_data_path(f"weak_labels{'' if class_balance is None else '_w_class_balance' }.csv")
 
-
-    # if True will read articles from local json file: data/articles.json
-    # - this can reduce burden on the remote database (network usage)
-    # read_local_articles = True
-
-    # ----
-    # connect to database
-    # ----
-
-    # get credentials
-    # with open(get_configs_path("mongo.json"), "r+") as f:
-    #     mdb_cred = json.load(f)
-    #
-    # # get mongodb client - for connections
-    # client = get_database(username=mdb_cred["username"],
-    #                       password=mdb_cred["password"],
-    #                       clustername=mdb_cred["cluster_name"])
     # ---
     # read in value chain data / knowledge base
     # ---
-
-    # t0 = time.time()
-    # vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
-    # t1 = time.time()
-
-    # there are some missing company names? exclude those
-    # vc = vc.loc[~pd.isnull(vc['Company Name'])]
 
     # read in locally stored valued chains
     vc = pd.read_csv(get_data_path("VCHAINS.csv"))
 
     kb = get_knowledge_base_from_value_chain_data(vc)
 
-    # for now no longer need connection
-    # client.close()
-
     # ---
     # read in full_sentences store locally
     # ---
-    # sent_file = get_data_path('full_sentences.json')
-    sent_file = get_data_path("processed_sentences.json")
 
     assert os.path.exists(sent_file), \
         f"looks like: {sent_file}, copy from google drive data/{os.path.basename(sent_file)}"
@@ -124,48 +93,6 @@ if __name__ == "__main__":
         full_sents = json.load(f)
 
     df = pd.DataFrame(full_sents)
-
-    # ---
-    # store data in dataframe - to allow for high level summary
-    # ---
-
-    # TODO: this could be removed, it looks like secondary analysis
-    #
-    #
-    #
-    # # short to long name map for entities in sentences
-    # s2l_entity1 = df[["entity1", "entity1_full"]].drop_duplicates()
-    # s2l_entity2 = df[["entity2", "entity2_full"]].drop_duplicates()
-    #
-    # s2l_entity1.rename(columns={"entity1": "entity", "entity1_full": "entity_full"}, inplace=True)
-    # s2l_entity2.rename(columns={"entity2": "entity", "entity2_full": "entity_full"}, inplace=True)
-    #
-    # s2l_entity = pd.concat([s2l_entity1, s2l_entity2])
-    #
-    # s2l_entity.drop_duplicates(inplace=True)
-    #
-    # # TODO: check how many relations are 1 to 1
-    # #  - want to be strict on there only being a 1-1 mapping?
-    # ent_count = pd.pivot_table(s2l_entity,
-    #                            index='entity',
-    #                            values='entity_full',
-    #                            aggfunc="count").reset_index()
-    #
-    # multi_map_ents = ent_count.loc[ent_count['entity_full'] > 1, "entity"]
-    # print("short to long names with 1 to many mapping")
-    # print(s2l_entity.loc[s2l_entity['entity'].isin(multi_map_ents)].sort_values("entity"))
-
-    # ----
-    # Filtering
-    # ----
-
-    # TODO: consider if this should be done somewhere else - i.e. seperate to this
-    # filtering
-    # df = df.loc[df['num_sentence'] <= max_sentence_number]
-    #
-    # # add sentence length
-    # df["num_chars"] = [len(i) for i in df['full_sentence']]
-    # df = df.loc[df['num_chars'] <= max_characters]
 
     # rename full sentence to text
     df.rename(columns={"full_sentence": "text"}, inplace=True)
@@ -187,60 +114,14 @@ if __name__ == "__main__":
     # set it to zero
     df.loc[pd.isnull(df["Confidence Score (%)"]), "Confidence Score (%)"] = 0
 
-    # HACK: review - if confidence is not high enough set relation ship to NA
-    # - so we only considered most 'likely' supplier relationships
-    # df.loc[df['Confidence Score (%)'] < min_conf_score_for_supplier, "relation"] = "NA"
-
-    # NOTE: this is not really needed
-    # - this should be done else where?
-    # add {} around entity 1
-    # df["text"] = [re.sub(row['entity1'], "{%s}" % row['entity1'], row['text'])
-    #                        for idx, row in df.iterrows()]
-    # # and [] around entity 2
-    # df["text"] = [re.sub(row['entity2'], "[%s]" % row['entity2'], row['text'])
-    #                        for idx, row in df.iterrows()]
-
-    # --
-    # add some more metrics
-    # --
-
-    plt.plot(np.sort(df["num_chars"].values)[::-1])
-    plt.title("number of characters in text")
-    plt.show()
-
-    # approximate number of tokens
-    df["num_tokens"] = [len(i.split(" ")) for i in df['text']]
-
-    plt.plot(np.sort(df["num_tokens"].values)[::-1])
-    plt.title("approximate number of tokens in text")
-    plt.show()
-
-    # --
-    # high level analysis
-    # --
-
-    # sentence per article
-    # sent_per_art = pd.pivot_table(df, index='article', values="text", aggfunc='count')
-    # sent_per_art = sent_per_art.reset_index()
-    # sent_per_art.sort_values("text", ascending=False, inplace=True)
-    #
-    # # determine a cutoff level
-    # q_art = np.quantile(sent_per_art['text'].values, q=0.99)
-    #
-    # # select articles that are at or below above threshold
-    # use_articles = sent_per_art.loc[sent_per_art['text'] <= q_art, "article"].values
-
-    # take subset of sentences
-    # df = df.loc[df['article'].isin(use_articles)]
-
     # ----
     # sentence 'size'
     # ----
 
-    num_sent = pd.pivot_table(df,
-                              index='num_sentence',
-                              values="text",
-                              aggfunc="count").reset_index()
+    # num_sent = pd.pivot_table(df,
+    #                           index='num_sentence',
+    #                           values="text",
+    #                           aggfunc="count").reset_index()
 
     # --
     # relation count
@@ -257,47 +138,47 @@ if __name__ == "__main__":
     # get a count of entity2 - the company that does the supplying
     # ---
 
-    e2_count = pd.pivot_table(df.loc[df['relation'] == "Supplier"],
-                               index="entity2",
-                               values="text",
-                               aggfunc="count").reset_index()
-    e2_count.rename(columns={"text": "count"}, inplace=True)
-    e2_count.sort_values("count", ascending=False, inplace=True)
-
-    e2_count_quantile = np.quantile(e2_count['count'].values, q=0.6)
-
-
-    plt.plot(np.cumsum(e2_count['count'].values)/e2_count['count'].values.sum())
-    plt.title("sentences per each entity2, cumulative ")
-    plt.show()
-
-    df = df.merge(e2_count,
-                  on="entity2",
-                  how="left")
-    df.rename(columns={"count": "e2_count"}, inplace=True)
+    # e2_count = pd.pivot_table(df.loc[df['relation'] == "Supplier"],
+    #                            index="entity2",
+    #                            values="text",
+    #                            aggfunc="count").reset_index()
+    # e2_count.rename(columns={"text": "count"}, inplace=True)
+    # e2_count.sort_values("count", ascending=False, inplace=True)
+    #
+    # e2_count_quantile = np.quantile(e2_count['count'].values, q=0.6)
+    #
+    #
+    # plt.plot(np.cumsum(e2_count['count'].values)/e2_count['count'].values.sum())
+    # plt.title("sentences per each entity2, cumulative ")
+    # plt.show()
+    #
+    # df = df.merge(e2_count,
+    #               on="entity2",
+    #               how="left")
+    # df.rename(columns={"count": "e2_count"}, inplace=True)
 
     # ---
     # get entity pair count
     # ---
 
-    e_pair = pd.pivot_table(df,
-                            index=["entity1", "entity2", "relation"],
-                            values="text",
-                            aggfunc="count").reset_index()
-    e_pair.sort_values("text", ascending=False, inplace=True)
-    e_pair.rename(columns={'text': "epair_count"}, inplace=True)
-
-    # entity pair quantile - for suppliers
-    # - to help identify lesser mentioned pairs, which the assumption
-    epair_q = np.quantile(e_pair.loc[e_pair["relation"] == "Supplier", 'epair_count'].values, q=0.6)
-
-    # merge on the metric
-    df = df.merge(e_pair,
-                  on=["entity1", "entity2", "relation"],
-                  how="left")
+    # e_pair = pd.pivot_table(df,
+    #                         index=["entity1", "entity2", "relation"],
+    #                         values="text",
+    #                         aggfunc="count").reset_index()
+    # e_pair.sort_values("text", ascending=False, inplace=True)
+    # e_pair.rename(columns={'text': "epair_count"}, inplace=True)
+    #
+    # # entity pair quantile - for suppliers
+    # # - to help identify lesser mentioned pairs, which the assumption
+    # epair_q = np.quantile(e_pair.loc[e_pair["relation"] == "Supplier", 'epair_count'].values, q=0.6)
+    #
+    # # merge on the metric
+    # df = df.merge(e_pair,
+    #               on=["entity1", "entity2", "relation"],
+    #               how="left")
 
     # ----
-    # company count per sentence - considering all companies in same sentence
+    # companies_in_text - considering all companies (from KB) in same sentence
     # ----
 
     # for each article - start_sent - end_sent triple get a all the (unique) companies that
@@ -320,7 +201,7 @@ if __name__ == "__main__":
                               aggfunc=lambda x: len(np.unique(("|".join(x)).split("|"))))
 
     comb_ase.rename(columns={"pair": "companies_in_text"}, inplace=True)
-    comb_ase.reset_index(inplace=True)
+    # comb_ase.reset_index(inplace=True)
 
     df = df.merge(comb_ase,
                   on=idx_col,
@@ -329,38 +210,6 @@ if __name__ == "__main__":
     # skip the measure of density, as it's harder to interpret
     # tmp["company_density"] = tmp["companies_in_text"] / tmp["num_tokens"]
 
-    # ---
-    # get total sentence count - by counting entity1 as well
-    # ---
-    #
-    # e1_count = pd.pivot_table(df.loc[df['relation'] == "Supplier"],
-    #                           index="entity1",
-    #                           values="text",
-    #                           aggfunc="count").reset_index()
-    # e1_count.rename(columns={"text": "count"}, inplace=True)
-    # e1_count.sort_values("count", ascending=False, inplace=True)
-    #
-    # df = df.merge(e1_count,
-    #               on="entity1",
-    #               how="left")
-    # df.rename(columns={"count": "e1_count"}, inplace=True)
-    #
-    # e1_count_q = np.quantile(e1_count['count'].values, q=0.8)
-    # e2_count_q = np.quantile(e2_count['count'].values, q=0.8)
-
-    # --
-    # combine
-    # ---
-
-    # e2_count.rename(columns={"entity2": "entity"}, inplace=True)
-    # e_tot = pd.pivot_table(pd.concat([e1_count, e2_count]),
-    #                        index=['entity'],
-    #                        values="count",
-    #                        aggfunc="sum").reset_index()
-    #
-    # e_tot.sort_values("count", ascending=False, inplace=True)
-
-    # np.quantile(e_tot['count'].values, q=0.95)
 
     # -----
     # Labelling functions
@@ -461,6 +310,11 @@ if __name__ == "__main__":
         return NO_REL if x['Confidence Score (%)'] == 0 else ABSTAIN
 
     @labeling_function()
+    def relation_pos(x):
+        """if there is not relation - that's probably the case so use it"""
+        return SUPPLIER if x['Confidence Score (%)'] >= 0.99 else ABSTAIN
+
+    @labeling_function()
     def astrix_count(x):
         """reuters specific - if there are many *'s (more than 1) assume
         they represent bullet points - which are often unrelated (new bulletins)"""
@@ -507,23 +361,24 @@ if __name__ == "__main__":
         return NO_REL if x.companies_in_text >= 5 else ABSTAIN
 
 
-    @labeling_function()
-    def epair_count(x):
-        """if the (supplier) entity pair does not come up often then give it supplier label"""
-        if x.relation == "Supplier":
-            if x.epair_count > epair_q:
-                return ABSTAIN
-            else:
-                return SUPPLIER
-        else:
-            return ABSTAIN
-
-
-    @labeling_function()
-    def e2_sentence_count(x):
-        """consider only the number of sentence e2 is in, with the idea the fewer the better
-        - less popular suggests a relationship will be mentioned?"""
-        return SUPPLIER if (x.e2_count < e2_count_quantile) & (x.relation == "Supplier") else ABSTAIN
+    # drop these ?
+    # @labeling_function()
+    # def epair_count(x):
+    #     """if the (supplier) entity pair does not come up often then give it supplier label"""
+    #     if x.relation == "Supplier":
+    #         if x.epair_count > epair_q:
+    #             return ABSTAIN
+    #         else:
+    #             return SUPPLIER
+    #     else:
+    #         return ABSTAIN
+    #
+    #
+    # @labeling_function()
+    # def e2_sentence_count(x):
+    #     """consider only the number of sentence e2 is in, with the idea the fewer the better
+    #     - less popular suggests a relationship will be mentioned?"""
+    #     return SUPPLIER if (x.e2_count < e2_count_quantile) & (x.relation == "Supplier") else ABSTAIN
 
 
     # @labeling_function()
@@ -542,6 +397,7 @@ if __name__ == "__main__":
     # combine label functions
     # ----
 
+    # uncomment below for slightly worse performance
     lfs = [
         regex_supply,
         regex_supplier,
@@ -553,14 +409,15 @@ if __name__ == "__main__":
         regex_sells,
         regex_provides,
         regex_produces,
-        regex_contract,
+        # regex_contract,
         regex_order,
-        # regex_deliver,
-        # regex_used_by,
-        # regex_agreement,
+        regex_deliver,
+        regex_used_by,
+        regex_agreement,
         # regex_offer,
-        regex_shipments,
+        # regex_shipments,
         relation_na,
+        relation_pos,
         astrix_count,
         arrow_count,
         dash_count,
@@ -569,8 +426,9 @@ if __name__ == "__main__":
         percent_symbol_count,
         percent_word_count,
         companies_in_text,
-        epair_count,
-        e2_sentence_count
+        # don't include these
+        # epair_count,
+        # e2_sentence_count
     ]
 
     # ---
@@ -599,9 +457,11 @@ if __name__ == "__main__":
     label_model = LabelModel(cardinality=2, verbose=True)
     label_model.fit(L_train=L_train,
                     # Y_dev= Y_dev,
+                    class_balance=class_balance,
+                    # default parameters
                     n_epochs=500,
                     log_freq=100,
-                    seed=125)
+                    seed=123)
 
     preds_train = label_model.predict(L=L_train)
 
@@ -614,7 +474,6 @@ if __name__ == "__main__":
     print(f"weak label abstained from: {100 * (preds_train < 0).mean(): .2f}%")
     print(f"no relation: {100 * (preds_train == 0).mean(): .2f}%")
     print(f"supplier: {100 * (preds_train == 1).mean(): .2f}%")
-
 
     # --
     # probabilistic labelling and filtering out ABSTAIN
@@ -652,6 +511,8 @@ if __name__ == "__main__":
     # Analysis on gold labels - MOVE THIS ELSEWHERE - shouldn't be part of this script
     # ---
 
+    print("peaking ahead")
+
     # get credentials
     with open(get_configs_path("mongo0.json"), "r+") as f:
         mdb_cred = json.load(f)
@@ -675,12 +536,17 @@ if __name__ == "__main__":
     # map gold labels to 0 or 1
     neg_vals = ["NA", "competitor", "reverse"]
     # - some of these might be generous
-    pos_vals = ["Supplier", "owner"]#, "partnership", "owner"]
+    pos_vals = ["Supplier"]#, "partnership", "owner"]
     label_map = {i: 1 if i in pos_vals else 0 for i in sd['gold_label'].unique()}
 
     sd['gl'] = sd['gold_label'].map(label_map)
 
-    (sd["weak_label"] == sd["gl"]).mean()
+    _ = sd.loc[sd["weak_label"] != -1]
+    print(f'weak = gold: {(_["weak_label"] == _["gl"]).mean()}')
+
+    _ = sd.loc[sd["weak_label"] == 1]
+
+    print(f'weak = gold: {(_["weak_label"] == _["gl"]).mean()}')
 
     # LFAnalysis(L_train, lfs).lf_summary()
 
@@ -691,9 +557,7 @@ if __name__ == "__main__":
 
     print(LFAnalysis(L=L_sd, lfs=lfs).lf_summary())
 
-    LFAnalysis(L_sd, lfs).lf_summary(sd['gl'].values)
-    #
-
+    print(LFAnalysis(L_sd, lfs).lf_summary(sd['gl'].values))
 
 
     # ---------------
@@ -702,252 +566,36 @@ if __name__ == "__main__":
 
 
 
-    # write to file
-    # TODO: consider adding transformations
-    # out["num_sentence"] += 1
+    # ---
+    # get total sentence count - by counting entity1 as well
+    # ---
+    #
+    # e1_count = pd.pivot_table(df.loc[df['relation'] == "Supplier"],
+    #                           index="entity1",
+    #                           values="text",
+    #                           aggfunc="count").reset_index()
+    # e1_count.rename(columns={"text": "count"}, inplace=True)
+    # e1_count.sort_values("count", ascending=False, inplace=True)
+    #
+    # df = df.merge(e1_count,
+    #               on="entity1",
+    #               how="left")
+    # df.rename(columns={"count": "e1_count"}, inplace=True)
+    #
+    # e1_count_q = np.quantile(e1_count['count'].values, q=0.8)
+    # e2_count_q = np.quantile(e2_count['count'].values, q=0.8)
 
 
-    # # REMOVE THIS
-    # probs_train = label_model.predict_proba(L_train)
-    #
-    # # include the prob
-    # df_train["prob_label"] = probs_train[:,1]
-    # res = df_train.to_dict("records")
-    #
-    # from nlp import get_data_path
-    # with open(get_data_path("weak_label_temp.json"), "w") as f:
-    #     json.dump(res, f, indent=4)
-    #
+    # --
+    # combine
+    # ---
 
+    # e2_count.rename(columns={"entity2": "entity"}, inplace=True)
+    # e_tot = pd.pivot_table(pd.concat([e1_count, e2_count]),
+    #                        index=['entity'],
+    #                        values="count",
+    #                        aggfunc="sum").reset_index()
+    #
+    # e_tot.sort_values("count", ascending=False, inplace=True)
 
-
-
-
-    # ----
-    # investigate
-    # -----
-
-    #8837bdb10360390047271ad0872e79b6a9e7e040d729daf2361fb0418917a772_20170928142741_www.reuters.com_FordMotoCo_LyftInc_6|7
-
-    # # --
-    # # check weak labels
-    # # --
-    #
-    # # negative cases
-    # rel_na = df_train_filtered.loc[df_train_filtered["relation"] == "NA"]
-    #
-    # # true negative rate: weak label is 0 and relation is NA
-    # # false positive rate: weak label is 1 and relation is NA
-    # tn, fp = np.unique(rel_na["weak_label"].values, return_counts=True)[1] / len(rel_na)
-    #
-    # # 'positive' cases
-    # # - note in here expect there to be many false positives
-    # # i.e. when there is a supplier relation but the text does not provide that information
-    # rel_sup = df_train_filtered.loc[df_train_filtered["relation"] == "Supplier"]
-    #
-    # # here assume if the weak label is 1 then it's a True positive (might not be in
-    # fp, tp = np.unique(rel_sup["weak_label"].values, return_counts=True)[1] / len(rel_sup)
-    #
-    # # rel_sup.loc[rel_sup["weak_label"] == 1, "text"].values[100]
-    #
-    # # ---
-    # # make transformations
-    # # ---
-    #
-    # # https://www.snorkel.org/use-cases/02-spam-data-augmentation-tutorial
-    # # import names
-    # from snorkel.augmentation import transformation_function
-    # from snorkel.preprocess.nlp import SpacyPreprocessor
-    #
-    # spacy = SpacyPreprocessor(text_field="text", doc_field="doc", memoize=True)
-    #
-    # # Swap two adjectives at random.
-    # @transformation_function(pre=[spacy])
-    # def swap_adjectives(x):
-    #     adjective_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "ADJ"]
-    #     # Check that there are at least two adjectives to swap.
-    #     if len(adjective_idxs) >= 2:
-    #         idx1, idx2 = sorted(np.random.choice(adjective_idxs, 2, replace=False))
-    #         # Swap tokens in positions idx1 and idx2.
-    #         x.text = " ".join(
-    #             [
-    #                 x.doc[:idx1].text,
-    #                 x.doc[idx2].text,
-    #                 x.doc[1 + idx1 : idx2].text,
-    #                 x.doc[idx1].text,
-    #                 x.doc[1 + idx2 :].text,
-    #             ]
-    #         )
-    #         return x
-    #
-    #
-    # # --
-    # # using nltk
-    # # ---
-    #
-    #
-    #
-    # nltk.download("wordnet")
-    #
-    #
-    # def get_synonym(word, pos=None):
-    #     """Get synonym for word given its part-of-speech (pos)."""
-    #     synsets = wn.synsets(word, pos=pos)
-    #     # Return None if wordnet has no synsets (synonym sets) for this word and pos.
-    #     if synsets:
-    #         words = [lemma.name() for lemma in synsets[0].lemmas()]
-    #         if words[0].lower() != word.lower():  # Skip if synonym is same as word.
-    #             # Multi word synonyms in wordnet use '_' as a separator e.g. reckon_with. Replace it with space.
-    #             return words[0].replace("_", " ")
-    #
-    #
-    # def replace_token(spacy_doc, idx, replacement):
-    #     """Replace token in position idx with replacement."""
-    #     return " ".join([spacy_doc[:idx].text, replacement, spacy_doc[1 + idx :].text])
-    #
-    #
-    # @transformation_function(pre=[spacy])
-    # def replace_verb_with_synonym(x):
-    #     # Get indices of verb tokens in sentence.
-    #     verb_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "VERB"]
-    #     if verb_idxs:
-    #         # Pick random verb idx to replace.
-    #         idx = np.random.choice(verb_idxs)
-    #         synonym = get_synonym(x.doc[idx].text, pos="v")
-    #         # If there's a valid verb synonym, replace it. Otherwise, return None.
-    #         if synonym:
-    #             x.text = replace_token(x.doc, idx, synonym)
-    #             return x
-    #
-    #
-    # @transformation_function(pre=[spacy])
-    # def replace_noun_with_synonym(x):
-    #     # Get indices of noun tokens in sentence.
-    #     noun_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "NOUN"]
-    #     if noun_idxs:
-    #         # Pick random noun idx to replace.
-    #         idx = np.random.choice(noun_idxs)
-    #         synonym = get_synonym(x.doc[idx].text, pos="n")
-    #         # If there's a valid noun synonym, replace it. Otherwise, return None.
-    #         if synonym:
-    #             x.text = replace_token(x.doc, idx, synonym)
-    #             return x
-    #
-    #
-    # @transformation_function(pre=[spacy])
-    # def replace_adjective_with_synonym(x):
-    #     # Get indices of adjective tokens in sentence.
-    #     adjective_idxs = [i for i, token in enumerate(x.doc) if token.pos_ == "ADJ"]
-    #     if adjective_idxs:
-    #         # Pick random adjective idx to replace.
-    #         idx = np.random.choice(adjective_idxs)
-    #         synonym = get_synonym(x.doc[idx].text, pos="a")
-    #         # If there's a valid adjective synonym, replace it. Otherwise, return None.
-    #         if synonym:
-    #             x.text = replace_token(x.doc, idx, synonym)
-    #             return x
-    #
-    #
-    # tfs = [
-    #     # change_person,
-    #     swap_adjectives,
-    #     replace_verb_with_synonym,
-    #     replace_noun_with_synonym,
-    #     replace_adjective_with_synonym,
-    # ]
-    #
-    # # from utils import preview_tfs
-    # # copied from: https://github.com/snorkel-team/snorkel-tutorials/blob/master/spam/utils.py
-    #
-    # def preview_tfs(df, tfs):
-    #     transformed_examples = []
-    #     for f in tfs:
-    #         for i, row in df.sample(frac=1, random_state=2).iterrows():
-    #             transformed_or_none = f(row)
-    #             # If TF returned a transformed example, record it in dict and move to next TF.
-    #             if transformed_or_none is not None:
-    #                 transformed_examples.append(
-    #                     OrderedDict(
-    #                         {
-    #                             "TF Name": f.name,
-    #                             "Original Text": row.text,
-    #                             "Transformed Text": transformed_or_none.text,
-    #                         }
-    #                     )
-    #                 )
-    #                 break
-    #     return pd.DataFrame(transformed_examples)
-    #
-    # preview_tfs(rel_sup, tfs)
-    #
-    # # # Random policy
-    # # random_policy = RandomPolicy(
-    # #     len(tfs), sequence_length=2, n_per_original=2, keep_original=True
-    # # )
-    #
-    # mean_field_policy = MeanFieldPolicy(
-    #     len(tfs),
-    #     sequence_length=2,
-    #     n_per_original=2,
-    #     keep_original=True,
-    #     p=[0.1, 0.3, 0.3, 0.3],
-    # )
-    #
-    # tf_applier = PandasTFApplier(tfs, mean_field_policy)
-    # rel_sup_aug = tf_applier.apply( rel_sup.loc[rel_sup["weak_label"] == 1])
-    # Y_train_augmented = rel_sup_aug["weak_label"].values
-    #
-    # # ---
-    # # write to file
-    # # ----
-    #
-    # df_train.drop(["e2_count", "e1_count"], axis=1, inplace=True)
-    # df_train["augmented"] = False
-    # rel_sup_aug.drop(["e2_count", "e1_count"], axis=1, inplace=True)
-    # rel_sup_aug["augmented"] = True
-    #
-    # out = pd.concat([df_train, rel_sup_aug], axis=0)
-    #
-    # # out["num_sentence"] += 1
-    # res = out.to_dict("records")
-    #
-    # from nlp import get_data_path
-    # with open(get_data_path("text_with_weak_labels.json"), "w") as f:
-    #     json.dump(res, f, indent=4)
-
-
-    # - this is slow and not really needed
-    # # use the knowledge base to give label
-    # def kb_label(x, kb, s2l_entity):
-    #     # this causes issue when tring to compile
-    #     # try:
-    #     #     e1 = re.search('\{(.*?)\}', x)[1]
-    #     #     e2 = re.search('\((.*?)\)', x)[1]
-    #     # except Exception as e:
-    #     #     return ABSTAIN
-    #
-    #     # HACK: to hand if if a series is provided.. this is not done well
-    #     if not isinstance(x, str):
-    #         x = x[0]
-    #     e1 = x[x.find("{")+1:x.find("}")]
-    #     e2 = x[x.find("(")+1:x.find(")")]
-    #
-    #     # get the long names
-    #     # NOTE: here there can be multiple matches - what follows will be
-    #     # more liberal in saying there is a supplier relation ship
-    #     # i.e. it could be Rolls-Royce Holdings PLC and Rolls-Royce PLC
-    #     # will be considered the same for short name Rolls-Royce
-    #     e1_long = s2l_entity.loc[s2l_entity['entity'] == e1, 'entity_full'].values
-    #     e2_long = s2l_entity.loc[s2l_entity['entity'] == e2, 'entity_full'].values
-    #
-    #     # TODO: could allow for ABSTAINING if unsure
-    #     # NOTE: the following assumes only one relation
-    #     if np.any(kb['entity1'].isin(e1_long) & kb['entity2'].isin(e2_long)):
-    #         return SUPPLIER
-    #     else:
-    #         return NO_REL
-    #
-    # kb_label_lf = LabelingFunction(name="kb_label",
-    #                                f=kb_label,
-    #                                resources={"kb": kb,
-    #                                           "s2l_entity": s2l_entity})
+    # np.quantile(e_tot['count'].values, q=0.95)
