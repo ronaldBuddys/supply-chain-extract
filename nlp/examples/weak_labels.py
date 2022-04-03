@@ -48,6 +48,7 @@ from nlp import get_configs_path, get_data_path
 
 if __name__ == "__main__":
 
+    # TODO: clean this file up
     # TODO: remove all content inbetween () and {}
     # TODO: replace entities to be wrapped with {} and ()
     # TODO: create labelling function to use KB -
@@ -60,11 +61,20 @@ if __name__ == "__main__":
     # parameters
     # ----
 
+    # TODO: should really store parameters (and label function names) used to generate weak labels
+
     max_sentence_number = 3
 
     max_characters = 500
 
     min_conf_score_for_supplier = 0.9
+
+    # this can be None
+    # class_balance = [0.9, 0.1]
+    class_balance = None
+
+    output_file = get_data_path("weak_labels.csv")
+
 
     # if True will read articles from local json file: data/articles.json
     # - this can reduce burden on the remote database (network usage)
@@ -389,7 +399,7 @@ if __name__ == "__main__":
 
     @labeling_function()
     def regex_make(x):
-        return SUPPLIER if re.search(r" make | makes | maker", x.text, flags=re.I) else ABSTAIN
+        return SUPPLIER if re.search(r" make| makes| maker", x.text, flags=re.I) else ABSTAIN
 
     @labeling_function()
     def regex_made(x):
@@ -545,10 +555,10 @@ if __name__ == "__main__":
         regex_produces,
         regex_contract,
         regex_order,
-        regex_deliver,
-        regex_used_by,
-        regex_agreement,
-        regex_offer,
+        # regex_deliver,
+        # regex_used_by,
+        # regex_agreement,
+        # regex_offer,
         regex_shipments,
         relation_na,
         astrix_count,
@@ -585,17 +595,112 @@ if __name__ == "__main__":
     majority_model = MajorityLabelVoter()
     preds_train = majority_model.predict(L=L_train)
 
-    # using LabelModel
+    # # using LabelModel
     label_model = LabelModel(cardinality=2, verbose=True)
-    label_model.fit(L_train=L_train, n_epochs=550, log_freq=100, seed=123)
+    label_model.fit(L_train=L_train,
+                    # Y_dev= Y_dev,
+                    n_epochs=500,
+                    log_freq=100,
+                    seed=125)
 
     preds_train = label_model.predict(L=L_train)
+
+    # print((L_train != ABSTAIN).mean(axis=0))
+
+    # print(LFAnalysis(L=L_train, lfs=lfs).lf_summary())
 
     df_train["weak_label"] = preds_train
 
     print(f"weak label abstained from: {100 * (preds_train < 0).mean(): .2f}%")
     print(f"no relation: {100 * (preds_train == 0).mean(): .2f}%")
     print(f"supplier: {100 * (preds_train == 1).mean(): .2f}%")
+
+
+    # --
+    # probabilistic labelling and filtering out ABSTAIN
+    # --
+
+    probs_train = label_model.predict_proba(L_train)
+
+    # include the prob
+    df_train["prob_label"] = probs_train[:, 1]
+    # res = df_train.to_dict("records")
+
+    # ---
+    # write to file
+    # ---
+
+    label_cols = ["id", "weak_label", "prob_label"]
+
+    out = df_train[label_cols].copy(True)
+
+    out.rename(columns={"id": "label_id"}, inplace=True)
+
+    out.to_csv(output_file, index=False)
+
+    # from nlp import get_data_path
+    # with open(get_data_path("text_with_weak_labels.json"), "w") as f:
+    #     json.dump(res, f, indent=4)
+    #
+    # # select only the labelled (ignore abstained - should double check validate this)
+    # df_train_filtered, probs_train_filtered = filter_unlabeled_dataframe(
+    #     X=df_train, y=probs_train, L=L_train
+    # )
+    # df_train_filtered = df_train_filtered.copy(True)
+
+    # ----
+    # Analysis on gold labels - MOVE THIS ELSEWHERE - shouldn't be part of this script
+    # ---
+
+    # get credentials
+    with open(get_configs_path("mongo0.json"), "r+") as f:
+        mdb_cred = json.load(f)
+
+    # # get mongodb client - for connections
+    client = get_database(username=mdb_cred["username"],
+                          password=mdb_cred["password"],
+                          clustername=mdb_cred["cluster_name"])
+
+    art_db = client["news_articles"]
+    # get gold labels
+    gl = pd.DataFrame(list(art_db['gold_labels'].find(filter={})))
+
+    client.close()
+
+    # merge on gold labels
+    sd = df_train.merge(gl, left_on="id", right_on="label_id", how="inner")
+
+    # sd['id'].unique().shape
+
+    # map gold labels to 0 or 1
+    neg_vals = ["NA", "competitor", "reverse"]
+    # - some of these might be generous
+    pos_vals = ["Supplier", "owner"]#, "partnership", "owner"]
+    label_map = {i: 1 if i in pos_vals else 0 for i in sd['gold_label'].unique()}
+
+    sd['gl'] = sd['gold_label'].map(label_map)
+
+    (sd["weak_label"] == sd["gl"]).mean()
+
+    # LFAnalysis(L_train, lfs).lf_summary()
+
+    applier = PandasLFApplier(lfs=lfs)
+    L_sd = applier.apply(df=sd)
+
+    print((L_sd != ABSTAIN).mean(axis=0))
+
+    print(LFAnalysis(L=L_sd, lfs=lfs).lf_summary())
+
+    LFAnalysis(L_sd, lfs).lf_summary(sd['gl'].values)
+    #
+
+
+
+    # ---------------
+
+
+
+
 
     # write to file
     # TODO: consider adding transformations
@@ -616,25 +721,6 @@ if __name__ == "__main__":
 
 
 
-    # --
-    # probabilistic labelling and filtering out ABSTAIN
-    # --
-
-    probs_train = label_model.predict_proba(L_train)
-
-    # include the prob
-    df_train["prob_label"] = probs_train[:,1]
-    res = df_train.to_dict("records")
-
-    from nlp import get_data_path
-    with open(get_data_path("text_with_weak_labels.json"), "w") as f:
-        json.dump(res, f, indent=4)
-
-    # select only the labelled (ignore abstained - should double check validate this)
-    df_train_filtered, probs_train_filtered = filter_unlabeled_dataframe(
-        X=df_train, y=probs_train, L=L_train
-    )
-    df_train_filtered = df_train_filtered.copy(True)
 
 
     # ----
