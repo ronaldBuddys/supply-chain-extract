@@ -15,10 +15,6 @@ from snorkel.augmentation import PandasTFApplier
 from snorkel.labeling.model import MajorityLabelVoter
 from snorkel.labeling.model import LabelModel
 from snorkel.labeling import LFAnalysis
-from snorkel.labeling import LabelingFunction
-from snorkel.augmentation import MeanFieldPolicy
-from snorkel.labeling import filter_unlabeled_dataframe
-from snorkel.augmentation import RandomPolicy
 
 import nltk
 from nltk.corpus import wordnet as wn
@@ -67,8 +63,11 @@ if __name__ == "__main__":
     sent_file = get_data_path("processed_sentences.json")
 
     # this can be None
-    # class_balance = [0.9, 0.1]
+    # class_balance = [0.85, 0.15]
     class_balance = None
+
+    #
+    min_score_for_pos = 0.995
 
     # output file
     output_file = get_data_path(f"weak_labels{'' if class_balance is None else '_w_class_balance' }.csv")
@@ -134,48 +133,6 @@ if __name__ == "__main__":
     print("count of 'relation'")
     print(relation_count)
 
-    # ---
-    # get a count of entity2 - the company that does the supplying
-    # ---
-
-    # e2_count = pd.pivot_table(df.loc[df['relation'] == "Supplier"],
-    #                            index="entity2",
-    #                            values="text",
-    #                            aggfunc="count").reset_index()
-    # e2_count.rename(columns={"text": "count"}, inplace=True)
-    # e2_count.sort_values("count", ascending=False, inplace=True)
-    #
-    # e2_count_quantile = np.quantile(e2_count['count'].values, q=0.6)
-    #
-    #
-    # plt.plot(np.cumsum(e2_count['count'].values)/e2_count['count'].values.sum())
-    # plt.title("sentences per each entity2, cumulative ")
-    # plt.show()
-    #
-    # df = df.merge(e2_count,
-    #               on="entity2",
-    #               how="left")
-    # df.rename(columns={"count": "e2_count"}, inplace=True)
-
-    # ---
-    # get entity pair count
-    # ---
-
-    # e_pair = pd.pivot_table(df,
-    #                         index=["entity1", "entity2", "relation"],
-    #                         values="text",
-    #                         aggfunc="count").reset_index()
-    # e_pair.sort_values("text", ascending=False, inplace=True)
-    # e_pair.rename(columns={'text': "epair_count"}, inplace=True)
-    #
-    # # entity pair quantile - for suppliers
-    # # - to help identify lesser mentioned pairs, which the assumption
-    # epair_q = np.quantile(e_pair.loc[e_pair["relation"] == "Supplier", 'epair_count'].values, q=0.6)
-    #
-    # # merge on the metric
-    # df = df.merge(e_pair,
-    #               on=["entity1", "entity2", "relation"],
-    #               how="left")
 
     # ----
     # companies_in_text - considering all companies (from KB) in same sentence
@@ -225,6 +182,51 @@ if __name__ == "__main__":
     # TODO: consider using
 
     # using a leading ' ' is to avoid matching in the middle of words
+
+
+    from snorkel.labeling import LabelingFunction
+
+    # ---
+    # build labels in systematic way
+    # ---
+
+    # def regex_search(x, regex, label):
+    #     return label if re.search(regex, x.text, flags=re.I) else ABSTAIN
+    #
+    #
+    # def make_regex_lf(regex, label=None):
+    #     assert label is not None, "for wlabel is None, please provide a label"
+    #     name_suffix = re.sub("\|", "_", regex)
+    #     name_suffix = name_suffix.lstrip().rstrip()
+    #     name_suffix = re.sub(" ", "_", name_suffix)
+    #     return LabelingFunction(
+    #         name=f"regex_{name_suffix}",
+    #         f=regex_search,
+    #         resources=dict(keywords=regex, label=label),
+    #     )
+    #
+    #
+    # tmp = make_regex_lf(" buy | buys | buyer", label=1)
+    #
+    # regex_list = [r" supply",
+    #               r" supplier",
+    #               r" supplies",
+    #               r" buy | buys | buyer",
+    #               r" customer| client",
+    #               r" make| makes| maker",
+    #               r" made by| made for",
+    #               r" sell | sells | seller ",
+    #               r" sales",
+    #               r" provide| provides",
+    #               r" produce| produces",
+    #               r" contract",
+    #               r" shipment",
+    #               r" order| ordered",
+    #               r" agreement",
+    #               r" offer",
+    #               r" serve| serves",
+    #               r" delivered| delivers",
+    #               r" used by"]
 
     @labeling_function()
     def regex_supply(x):
@@ -286,7 +288,6 @@ if __name__ == "__main__":
     def regex_agreement(x):
         return SUPPLIER if re.search(r" agreement", x.text, flags=re.I) else ABSTAIN
 
-
     @labeling_function()
     def regex_offer(x):
         return SUPPLIER if re.search(r" offer", x.text, flags=re.I) else ABSTAIN
@@ -312,7 +313,7 @@ if __name__ == "__main__":
     @labeling_function()
     def relation_pos(x):
         """if there is not relation - that's probably the case so use it"""
-        return SUPPLIER if x['Confidence Score (%)'] >= 0.99 else ABSTAIN
+        return SUPPLIER if x['Confidence Score (%)'] >= min_score_for_pos else ABSTAIN
 
     @labeling_function()
     def astrix_count(x):
@@ -457,7 +458,7 @@ if __name__ == "__main__":
     label_model = LabelModel(cardinality=2, verbose=True)
     label_model.fit(L_train=L_train,
                     # Y_dev= Y_dev,
-                    class_balance=class_balance,
+                    # class_balance=class_balance,
                     # default parameters
                     n_epochs=500,
                     log_freq=100,
@@ -510,59 +511,115 @@ if __name__ == "__main__":
     # ----
     # Analysis on gold labels - MOVE THIS ELSEWHERE - shouldn't be part of this script
     # ---
+    #
+    # print("peaking ahead")
+    #
+    # # get credentials
+    # with open(get_configs_path("mongo0.json"), "r+") as f:
+    #     mdb_cred = json.load(f)
+    #
+    # # # get mongodb client - for connections
+    # client = get_database(username=mdb_cred["username"],
+    #                       password=mdb_cred["password"],
+    #                       clustername=mdb_cred["cluster_name"])
+    #
+    # art_db = client["news_articles"]
+    # # get gold labels
+    # gl = pd.DataFrame(list(art_db['gold_labels'].find(filter={})))
+    #
+    # client.close()
+    #
+    # # merge on gold labels
+    # sd = df_train.merge(gl, left_on="id", right_on="label_id", how="inner")
+    #
+    # # sd['id'].unique().shape
+    #
+    # # map gold labels to 0 or 1
+    # neg_vals = ["NA", "competitor", "reverse"]
+    # # - some of these might be generous
+    # pos_vals = ["Supplier", "partnership", "owner"]#, "partnership", "owner"]
+    # label_map = {i: 1 if i in pos_vals else 0 for i in sd['gold_label'].unique()}
+    #
+    # sd['gl'] = sd['gold_label'].map(label_map)
+    #
+    # _ = sd.loc[sd["weak_label"] != -1]
+    # print(f'weak = gold (all): {(_["weak_label"] == _["gl"]).mean()}')
+    #
+    # _ = sd.loc[sd["weak_label"] == 1]
+    #
+    # print(f'weak = gold (supplier): {(_["weak_label"] == _["gl"]).mean()}')
 
-    print("peaking ahead")
-
-    # get credentials
-    with open(get_configs_path("mongo0.json"), "r+") as f:
-        mdb_cred = json.load(f)
-
-    # # get mongodb client - for connections
-    client = get_database(username=mdb_cred["username"],
-                          password=mdb_cred["password"],
-                          clustername=mdb_cred["cluster_name"])
-
-    art_db = client["news_articles"]
-    # get gold labels
-    gl = pd.DataFrame(list(art_db['gold_labels'].find(filter={})))
-
-    client.close()
-
-    # merge on gold labels
-    sd = df_train.merge(gl, left_on="id", right_on="label_id", how="inner")
-
-    # sd['id'].unique().shape
-
-    # map gold labels to 0 or 1
-    neg_vals = ["NA", "competitor", "reverse"]
-    # - some of these might be generous
-    pos_vals = ["Supplier"]#, "partnership", "owner"]
-    label_map = {i: 1 if i in pos_vals else 0 for i in sd['gold_label'].unique()}
-
-    sd['gl'] = sd['gold_label'].map(label_map)
-
-    _ = sd.loc[sd["weak_label"] != -1]
-    print(f'weak = gold: {(_["weak_label"] == _["gl"]).mean()}')
-
-    _ = sd.loc[sd["weak_label"] == 1]
-
-    print(f'weak = gold: {(_["weak_label"] == _["gl"]).mean()}')
-
-    # LFAnalysis(L_train, lfs).lf_summary()
-
-    applier = PandasLFApplier(lfs=lfs)
-    L_sd = applier.apply(df=sd)
-
-    print((L_sd != ABSTAIN).mean(axis=0))
-
-    print(LFAnalysis(L=L_sd, lfs=lfs).lf_summary())
-
-    print(LFAnalysis(L_sd, lfs).lf_summary(sd['gl'].values))
+    # ----
+    #
+    # ----
+    #
+    # from sklearn.metrics import precision_recall_fscore_support
+    # b = sd["weak_label"].values >= 0
+    #
+    # test_y = sd["weak_label"].values
+    # predictions = sd["gl"].values
+    #
+    # precision_recall_fscore_support(test_y[b], predictions[b], beta=1)
+    #
+    #
+    #
+    # # LFAnalysis(L_train, lfs).lf_summary()
+    #
+    # applier = PandasLFApplier(lfs=lfs)
+    # L_sd = applier.apply(df=sd)
+    #
+    # print((L_sd != ABSTAIN).mean(axis=0))
+    #
+    # print(LFAnalysis(L=L_sd, lfs=lfs).lf_summary())
+    #
+    # print(LFAnalysis(L_sd, lfs).lf_summary(sd['gl'].values))
+    #
+    #
+    # # ---------------
 
 
-    # ---------------
+    # ---
+    # get a count of entity2 - the company that does the supplying
+    # ---
 
+    # e2_count = pd.pivot_table(df.loc[df['relation'] == "Supplier"],
+    #                            index="entity2",
+    #                            values="text",
+    #                            aggfunc="count").reset_index()
+    # e2_count.rename(columns={"text": "count"}, inplace=True)
+    # e2_count.sort_values("count", ascending=False, inplace=True)
+    #
+    # e2_count_quantile = np.quantile(e2_count['count'].values, q=0.6)
+    #
+    #
+    # plt.plot(np.cumsum(e2_count['count'].values)/e2_count['count'].values.sum())
+    # plt.title("sentences per each entity2, cumulative ")
+    # plt.show()
+    #
+    # df = df.merge(e2_count,
+    #               on="entity2",
+    #               how="left")
+    # df.rename(columns={"count": "e2_count"}, inplace=True)
 
+    # ---
+    # get entity pair count
+    # ---
+
+    # e_pair = pd.pivot_table(df,
+    #                         index=["entity1", "entity2", "relation"],
+    #                         values="text",
+    #                         aggfunc="count").reset_index()
+    # e_pair.sort_values("text", ascending=False, inplace=True)
+    # e_pair.rename(columns={'text': "epair_count"}, inplace=True)
+    #
+    # # entity pair quantile - for suppliers
+    # # - to help identify lesser mentioned pairs, which the assumption
+    # epair_q = np.quantile(e_pair.loc[e_pair["relation"] == "Supplier", 'epair_count'].values, q=0.6)
+    #
+    # # merge on the metric
+    # df = df.merge(e_pair,
+    #               on=["entity1", "entity2", "relation"],
+    #               how="left")
 
 
 
