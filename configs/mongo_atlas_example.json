@@ -1,0 +1,6 @@
+{
+  "username": "<username>",
+  "password": "<password>",
+  "cluster_name": "<mongodb atlas cluster_name>",
+  "cluster_name_options": ["cluster0.1234", "cluster0.abcd"]
+}

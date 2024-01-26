@@ -8,7 +8,7 @@ import numpy as np
 import json
 import re
 from OpenPermID import OpenPermID
-from nlp import get_configs_path
+from src import get_configs_path
 
 
 def get_database(username, password, clustername):
