@@ -5,7 +5,7 @@ import pandas as pd
 import time
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -15,8 +15,8 @@ except NameError:
     src_path = None
 
 
-from nlp.utils import get_database
-from nlp import get_configs_path
+from supply_chain_extract.utils import get_database
+from supply_chain_extract import get_configs_path
 
 if __name__ == "__main__":
 
@@ -70,8 +70,8 @@ if __name__ == "__main__":
     # delete all entries
     collection_name.delete_many(filter={})
 
-    prev_fetched = pd.DataFrame(list(client['refinitiv']["VCHAINS"].find(filter={})))
+    prev_fetched = pd.DataFrame(list(client['knowledge_base']["VCHAINS"].find(filter={})))
     
-    filename = src_path + "/nlp/data/VCHain_DB_Data_As_of_" + time.strftime("%Y_%m_%d_%H_%M")+".xlsx"
+    filename = src_path + "/supply_chain_extract/data/VCHain_DB_Data_As_of_" + time.strftime("%Y_%m_%d_%H_%M")+".xlsx"
     print("Saving {}".format(filename))
     prev_fetched.to_excel(filename)

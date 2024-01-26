@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.getcwd(), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -26,8 +26,8 @@ except NameError:
     src_path = None
 
 
-from nlp.utils import get_bidirectional_suppliers, get_knowledge_base_from_value_chain_data
-from nlp import get_data_path
+from supply_chain_extract.utils import get_bidirectional_suppliers, get_knowledge_base_from_value_chain_data
+from supply_chain_extract import get_data_path
 
 if __name__ == "__main__":
 

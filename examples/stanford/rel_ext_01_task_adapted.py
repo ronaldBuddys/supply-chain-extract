@@ -94,7 +94,7 @@ __version__ = "CS224u, Stanford, Spring 2021"
 import random
 import os
 from collections import Counter, defaultdict
-from nlp.examples.
+from supply_chain_extract.examples.
 import utils
 import sys
 
@@ -112,7 +112,7 @@ utils.fix_random_seeds()
 
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.getcwd(), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:

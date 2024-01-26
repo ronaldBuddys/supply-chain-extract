@@ -21,7 +21,7 @@ from spacy.matcher import PhraseMatcher
 
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.getcwd(), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -30,8 +30,8 @@ except NameError:
     print('issue with adding to path, probably due to __file__ not being defined')
     src_path = None
     
-from nlp.utils import get_database
-from nlp import get_configs_path, get_data_path
+from supply_chain_extract.utils import get_database
+from supply_chain_extract import get_configs_path, get_data_path
 
 from collections import Counter
 import matplotlib.pyplot as plt
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     # read in value chain data
     # ---
 
-    vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
+    vc = pd.DataFrame(list(client["knowledge_base"]["VCHAINS"].find(filter={})))
 
     #TODO: Connect to DB to load latest mapping of long to short name
     #print(f"database names: {client.list_database_names()}")
@@ -385,9 +385,9 @@ if __name__ == "__main__":
     # https://spacy.io/usage/spacy-101#annotations
 
     # requires:$ python -m spacy download en_core_web_md
-    # nlp = spacy.load("en_core_web_lg")
+    # supply_chain_extract = spacy.load("en_core_web_lg")
     nlp = spacy.load("en_core_web_sm")
-    # nlp = spacy.load("en_core_web_md")
+    # supply_chain_extract = spacy.load("en_core_web_md")
 
     # ----
     # Extending entity ruler -> NOT USED AT THIS POINT ANYMORE (Use direct matching of company short name instead ) TODO: Use custom tokenizer instead
@@ -562,12 +562,12 @@ if __name__ == "__main__":
 
     ####Previous stuff
 
-    #doc = nlp("A complex-example,!")
+    #doc = supply_chain_extract("A complex-example,!")
     # print([token.text for token in doc])
     #
     # a = articles[keys[1]]
     # t0 = time.perf_counter()
-    # doc = nlp(a["maintext"])
+    # doc = supply_chain_extract(a["maintext"])
     # t1 = time.perf_counter()
     # # will take about ~ 11min to run fo 5500 articles
     #
@@ -694,8 +694,8 @@ if __name__ == "__main__":
     # not_found_all_names = []
     #
     # #
-    # nlp = English()
-    # tokenizer = nlp.tokenizer
+    # supply_chain_extract = English()
+    # tokenizer = supply_chain_extract.tokenizer
     #
     # # record all the short names
     # short_name_dict = {n: np.array([]) for n in all_names}

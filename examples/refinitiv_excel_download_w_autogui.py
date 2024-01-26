@@ -16,7 +16,7 @@ import selenium
 from selenium.webdriver.common.keys import Keys
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -25,9 +25,9 @@ except NameError:
     print('issue with adding to path, probably due to __file__ not being defined')
     src_path = None
 
-from nlp.browser import start_browser
-from nlp import get_configs_path, get_data_path, get_image_path
-from nlp.utils import get_database, search_company
+from supply_chain_extract.browser import start_browser
+from supply_chain_extract import get_configs_path, get_data_path, get_image_path
+from supply_chain_extract.utils import get_database, search_company
 
 
 
@@ -194,7 +194,7 @@ def get_all_suppliers(page_info, parent_ticker, client=None, data_dir=None, sele
     # - get just the ticker name
     if client is not None:
         print("loading previously fetched using mongo db - 'refinitiv'")
-        prev_fetched = pd.DataFrame(list(client['refinitiv'][page_info].find(filter={})))
+        prev_fetched = pd.DataFrame(list(client['knowledge_base'][page_info].find(filter={})))
         try:
             prev_fetched.drop("_id", axis=1, inplace=True)
         # will get key error there are no document
@@ -462,20 +462,20 @@ def switch_to_relevant_iframe(browser, page_info, page_long_name):
     browser.switch_to.frame("internal")
     browser.switch_to.frame("AppFrame")
 
-    # HARCODED: find iframe with 'Corp' in src? - will this always work?
+    # HARCODED: find iframe with 'Corp' in supply_chain_extract? - will this always work?
     iframe = [i
               for i in browser.find_elements_by_tag_name("iframe")
-              if re.search("Corp", re.sub(base_url, "", i.get_attribute("src")))]
+              if re.search("Corp", re.sub(base_url, "", i.get_attribute("supply_chain_extract")))]
     try:
-        assert len(iframe) > 0, "expected more than one iframe with 'Corp' in 'src' attribute"
+        assert len(iframe) > 0, "expected more than one iframe with 'Corp' in 'supply_chain_extract' attribute"
     except AssertionError as e:
         print(e)
         print("trying 'privatecompany'")
         iframe = [i
                   for i in browser.find_elements_by_tag_name("iframe")
-                  if re.search("privatecompany", re.sub(base_url, "", i.get_attribute("src")))]
+                  if re.search("privatecompany", re.sub(base_url, "", i.get_attribute("supply_chain_extract")))]
         try:
-            assert len(iframe) > 0, "expected more than one iframe with 'Corp' in 'src' attribute"
+            assert len(iframe) > 0, "expected more than one iframe with 'Corp' in 'supply_chain_extract' attribute"
         except AssertionError as e:
             return False
         # except_count += 1
@@ -486,12 +486,12 @@ def switch_to_relevant_iframe(browser, page_info, page_long_name):
     # AppFrame - again
     browser.switch_to.frame("AppFrame")
 
-    # HARCODED: found page_long_name[page_info] in 'src'
+    # HARCODED: found page_long_name[page_info] in 'supply_chain_extract'
     iframe = [i
               for i in browser.find_elements_by_tag_name("iframe")
-              if re.search(page_long_name[page_info], re.sub(base_url, "", i.get_attribute("src")))]
+              if re.search(page_long_name[page_info], re.sub(base_url, "", i.get_attribute("supply_chain_extract")))]
 
-    assert len(iframe) > 0, "expected more than one iframe from page_long_name[page_info] in 'src' attribute"
+    assert len(iframe) > 0, "expected more than one iframe from page_long_name[page_info] in 'supply_chain_extract' attribute"
     browser.switch_to.frame(iframe[0])
 
     # AppFrame - again!!
@@ -669,7 +669,7 @@ if __name__ == "__main__":
 
     page_short_name = {"VCHAINS": "VC"}
 
-    # base url for workspace - use to deal with src
+    # base url for workspace - use to deal with supply_chain_extract
     # - this is the page should check landed on after login
     base_url = 'https://emea1.apps.cp.thomsonreuters.com'
 
@@ -752,7 +752,7 @@ if __name__ == "__main__":
         login_conf = get_configs_path("refinitiv.json")
         assert os.path.exists(login_conf), \
             f"login config:\n{login_conf}\nnot found, should exist and be in format:\n" \
-            f"{json.dumps({'username': 'first.lastname.21@ucl.ac.uk', 'password': 'refinitiv_password'})}\n"
+            f"{json.dumps({'username': 'first.lastname@email.com', 'password': 'refinitiv_password'})}\n"
 
         with open(login_conf, "r") as f:
             ref_dets = json.load(f)
@@ -816,7 +816,7 @@ if __name__ == "__main__":
 
         else:
             # TODO: make a util function to get all documents into single dataframe
-            bad_tickers = pd.DataFrame(list(client['refinitiv'][f"{page_info}_bad_ticker"].find({})))
+            bad_tickers = pd.DataFrame(list(client['knowledge_base'][f"{page_info}_bad_ticker"].find({})))
             bad_tickers.drop("_id", axis=1, inplace=True)
 
         bad_ids = bad_tickers["Identifier"].values.astype('str')
@@ -856,7 +856,7 @@ if __name__ == "__main__":
 
             # just encase someone else has already fetched this ticker
             if client is not None:
-                found = client['refinitiv'][f"{page_info}"].find_one(filter={"Parent Id": int(ticker)})
+                found = client['knowledge_base'][f"{page_info}"].find_one(filter={"Parent Id": int(ticker)})
                 if found is not None:
                     print("looks like: {ticker} as already been found, skipping")
                     continue
@@ -931,7 +931,7 @@ if __name__ == "__main__":
                     bt = {'Company Name': bad_ticker["Company Name"].values[0],
                           'Identifier': int(ticker),
                           'reason': "no results"}
-                    client['refinitiv'][f"{page_info}_bad_ticker"].insert_one(bt)
+                    client['knowledge_base'][f"{page_info}_bad_ticker"].insert_one(bt)
 
                 print("skipping")
                 continue
@@ -1013,12 +1013,12 @@ if __name__ == "__main__":
                 df = read_fetched_file(dst_file)
                 pid = df['Parent Id'].unique()
                 pid = int(pid[0])
-                res = client["refinitiv"][page_info].find_one({'Parent Id': pid})
+                res = client["knowledge_base"][page_info].find_one({'Parent Id': pid})
                 # add company if not found before
                 if res is None:
-                    print(f"adding to database 'refinitiv': collection: {page_info} documents for: {pid}")
+                    print(f"adding to database 'knowledge_base': collection: {page_info} documents for: {pid}")
                     print(f"company name: {df['Parent Name'].unique()[0]}")
-                    client["refinitiv"][page_info].insert_many(df.to_dict('records'))
+                    client["knowledge_base"][page_info].insert_many(df.to_dict('records'))
                 else:
                     # TODO: in general would want to all for updating value in database - so checking previous fetch_time
                     warnings.warn(f"company with id: {pid} already has entries in database")

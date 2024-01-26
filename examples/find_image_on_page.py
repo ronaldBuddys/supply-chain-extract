@@ -8,7 +8,7 @@ import pandas as pd
 from PIL import Image
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -17,7 +17,7 @@ except NameError:
     print('issue with adding to path, probably due to __file__ not being defined')
     src_path = None
 
-from nlp import get_image_path
+from supply_chain_extract import get_image_path
 
 if __name__ == "__main__":
 

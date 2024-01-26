@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.getcwd(), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -27,8 +27,8 @@ except NameError:
     src_path = None
 
 
-from nlp.utils import get_database, niave_long_to_short_name, get_knowledge_base_from_value_chain_data
-from nlp import get_configs_path, get_data_path
+from supply_chain_extract.utils import get_database, niave_long_to_short_name, get_knowledge_base_from_value_chain_data
+from supply_chain_extract import get_configs_path, get_data_path
 
 
 if __name__ == "__main__":
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     # read in value chain data / knowledge base
     # ---
 
-    vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
+    vc = pd.DataFrame(list(client["knowledge_base"]["VCHAINS"].find(filter={})))
 
     # there are some missing comany names? exclude those
     vc = vc.loc[~pd.isnull(vc['Company Name'])]

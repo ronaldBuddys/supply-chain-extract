@@ -18,7 +18,7 @@ from newsplease.crawler.commoncrawl_extractor import CommonCrawlExtractor
 from newsplease.crawler.commoncrawl_crawler import __start_commoncrawl_extractor
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -28,8 +28,8 @@ except NameError:
     src_path = None
 
 
-from nlp import get_parent_path, get_configs_path
-from nlp.utils import get_database
+from supply_chain_extract import get_parent_path, get_configs_path
+from supply_chain_extract.utils import get_database
 
 
 def __setup__():
@@ -204,7 +204,7 @@ if __name__ == "__main__":
     # get all entries from value chain data
     # TODO: select only relevant 'columns' using a 'projection' in the find()
     t0 = time.time()
-    vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
+    vc = pd.DataFrame(list(client["knowledge_base"]["VCHAINS"].find(filter={})))
     t1 = time.time()
 
     # ----

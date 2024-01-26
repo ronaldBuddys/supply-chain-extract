@@ -15,8 +15,8 @@ import pymongo
 
 import selenium
 from selenium.webdriver.common.keys import Keys
-from nlp.utils import get_database
-from nlp import get_configs_path
+from supply_chain_extract.utils import get_database
+from supply_chain_extract import get_configs_path
 
 
 if __name__ == "__main__":

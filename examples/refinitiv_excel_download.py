@@ -1,4 +1,4 @@
-# example file of how to download excel workbook from refinitiv
+# example file of how to download excel workbook from knowledge_base
 
 import json
 import os
@@ -12,7 +12,7 @@ import selenium
 from selenium.webdriver.common.keys import Keys
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -21,8 +21,8 @@ except NameError:
     print('issue with adding to path, probably due to __file__ not being defined')
     src_path = None
 
-from nlp.browser import start_browser
-from nlp import get_configs_path, get_data_path
+from supply_chain_extract.browser import start_browser
+from supply_chain_extract import get_configs_path, get_data_path
 
 
 def and_list_of_bools(x):
@@ -200,12 +200,12 @@ def switch_to_relevant_iframe(browser, page_info, page_long_name):
     browser.switch_to.frame("internal")
     browser.switch_to.frame("AppFrame")
 
-    # HARCODED: find iframe with 'Corp' in src? - will this always work?
+    # HARCODED: find iframe with 'Corp' in supply_chain_extract? - will this always work?
     iframe = [i
               for i in browser.find_elements_by_tag_name("iframe")
-              if re.search("Corp", re.sub(base_url, "", i.get_attribute("src")))]
+              if re.search("Corp", re.sub(base_url, "", i.get_attribute("supply_chain_extract")))]
     try:
-        assert len(iframe) > 0, "expected more than one iframe with 'Corp' in 'src' attribute"
+        assert len(iframe) > 0, "expected more than one iframe with 'Corp' in 'supply_chain_extract' attribute"
     except AssertionError as e:
         print(e)
         return -1
@@ -217,12 +217,12 @@ def switch_to_relevant_iframe(browser, page_info, page_long_name):
     # AppFrame - again
     browser.switch_to.frame("AppFrame")
 
-    # HARCODED: found page_long_name[page_info] in 'src'
+    # HARCODED: found page_long_name[page_info] in 'supply_chain_extract'
     iframe = [i
               for i in browser.find_elements_by_tag_name("iframe")
-              if re.search(page_long_name[page_info], re.sub(base_url, "", i.get_attribute("src")))]
+              if re.search(page_long_name[page_info], re.sub(base_url, "", i.get_attribute("supply_chain_extract")))]
 
-    assert len(iframe) > 0, "expected more than one iframe from page_long_name[page_info] in 'src' attribute"
+    assert len(iframe) > 0, "expected more than one iframe from page_long_name[page_info] in 'supply_chain_extract' attribute"
     browser.switch_to.frame(iframe[0])
 
     # AppFrame - again!!
@@ -295,7 +295,7 @@ if __name__ == "__main__":
         "TREE": "CompanyTreeStructure"
     }
 
-    # base url for workspace - use to deal with src
+    # base url for workspace - use to deal with supply_chain_extract
     # - this is the page should check landed on after login
     base_url = 'https://emea1.apps.cp.thomsonreuters.com'
 
@@ -324,7 +324,7 @@ if __name__ == "__main__":
     # no profile - easier to identify as a bot?
     # browser = start_browser(profile_loc=None, out_dir=data_dir)
 
-    # visit refinitiv workspace
+    # visit knowledge_base workspace
     refin_url = "https://workspace.refinitiv.com/web"
 
     print(f"loading page: {refin_url}")
@@ -346,7 +346,7 @@ if __name__ == "__main__":
         login_conf = get_configs_path("refinitiv.json")
         assert os.path.exists(login_conf), \
             f"login config:\n{login_conf}\nnot found, should exist and be in format:\n" \
-            f"{json.dumps({'username': 'first.lastname.21@ucl.ac.uk', 'password': 'refinitiv_password'})}\n"
+            f"{json.dumps({'username': 'first.lastname.21@email.com', 'password': 'refinitiv_password'})}\n"
 
         with open(login_conf, "r") as f:
             ref_dets = json.load(f)
@@ -530,25 +530,25 @@ if __name__ == "__main__":
                 # browser.refresh()
                 # time.sleep(2.5*base_sleep)
 
-                try:
-                    excel_btn = excel_download_button(browser, page_info)
-                    excel_btn.click()
-                except selenium.common.exceptions.ElementNotInteractableException as e:
-                    print(e)
-                    print("ElementNotInteractableException: issue clicking download button, moving on")
-                    # TODO: keep track of how often this occurs? break if too many
-                    # browser.refresh()
-                    base_sleep *= 1.1
-                    except_count += 1
-                    continue
-                except selenium.common.exceptions.NoSuchElementException as e:
-                    print(e)
-                    print("NoSuchElementException: issue clicking download button, moving on")
-                    # TODO: keep track of how often this occurs? break if too many
-                    # browser.refresh()
-                    base_sleep *= 1.1
-                    except_count += 1
-                    continue
+                # try:
+                #     excel_btn = excel_download_button(browser, page_info)
+                #     excel_btn.click()
+                # except selenium.common.exceptions.ElementNotInteractableException as e:
+                #     print(e)
+                #     print("ElementNotInteractableException: issue clicking download button, moving on")
+                #     # TODO: keep track of how often this occurs? break if too many
+                #     # browser.refresh()
+                #     base_sleep *= 1.1
+                #     except_count += 1
+                #     continue
+                # except selenium.common.exceptions.NoSuchElementException as e:
+                #     print(e)
+                #     print("NoSuchElementException: issue clicking download button, moving on")
+                #     # TODO: keep track of how often this occurs? break if too many
+                #     # browser.refresh()
+                #     base_sleep *= 1.1
+                #     except_count += 1
+                #     continue
 
             # HACK: sleep to allow for download
             # - should be more careful checking -  see if there are an any 'part' files

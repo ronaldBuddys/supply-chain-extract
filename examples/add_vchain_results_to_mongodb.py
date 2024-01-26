@@ -2,10 +2,10 @@ import json
 import os
 import re
 import pandas as pd
-from nlp.utils import get_database
-from nlp import get_configs_path, get_data_path
+from supply_chain_extract.utils import get_database
+from supply_chain_extract import get_configs_path, get_data_path
 
-from nlp.examples.refinitiv_excel_download_w_autogui import read_fetched_file
+from supply_chain_extract.examples.knowledge_base_excel_download_w_autogui import read_fetched_file
 
 if __name__ == "__main__":
 
@@ -23,8 +23,8 @@ if __name__ == "__main__":
     # get files from page_info downloads
     page_info = "VCHAINS"
 
-    # connect to refinitiv database
-    db = client["refinitiv"]
+    # connect to knowledge_base database
+    db = client["knowledge_base"]
 
     # directory where data is stored (locally)
     data_dir = get_data_path(page_info)

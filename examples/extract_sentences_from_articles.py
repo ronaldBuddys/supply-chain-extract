@@ -21,7 +21,7 @@ import spacy
 
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.getcwd(), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -30,8 +30,8 @@ except NameError:
     print('issue with adding to path, probably due to __file__ not being defined')
     src_path = None
 
-from nlp.utils import get_database, niave_long_to_short_name, get_knowledge_base_from_value_chain_data
-from nlp import get_configs_path, get_data_path
+from supply_chain_extract.utils import get_database, niave_long_to_short_name, get_knowledge_base_from_value_chain_data
+from supply_chain_extract import get_configs_path, get_data_path
 
 
 import pandas as pd
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     # ---
 
     print('getting knowledge base')
-    # vc = pd.DataFrame(list(client["refinitiv"]["VCHAINS"].find(filter={})))
+    # vc = pd.DataFrame(list(client["knowledge_base"]["VCHAINS"].find(filter={})))
     # vc.drop("_id", axis=1, inplace=True)
     # vc.to_csv(get_data_path("VCHAINS.csv"), index=False)
     vc = pd.read_csv(get_data_path("VCHAINS.csv"))
@@ -346,8 +346,8 @@ if __name__ == "__main__":
     # - https://spacy.io/usage/spacy-101#annotations
     # - requires:$ python -m spacy download en_core_web_md
     nlp = spacy.load("en_core_web_sm")
-    # nlp = spacy.load("en_core_web_lg")
-    # nlp = spacy.load("en_core_web_md")
+    # supply_chain_extract = spacy.load("en_core_web_lg")
+    # supply_chain_extract = spacy.load("en_core_web_md")
 
     # store results (sentences) in a list
     out = []

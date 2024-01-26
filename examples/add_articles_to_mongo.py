@@ -17,7 +17,7 @@ from pymongo import UpdateOne
 
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -27,8 +27,8 @@ except NameError:
     src_path = None
 
 
-from nlp.utils import get_database, get_list_from_tree, make_reg_tree
-from nlp import get_configs_path, get_data_path
+from supply_chain_extract.utils import get_database, get_list_from_tree, make_reg_tree
+from supply_chain_extract import get_configs_path, get_data_path
 
 
 if __name__ == "__main__":
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # - to avoid using too much memory in reading all
     batch_size = 1000
 
-    # require cc_download_articles is in nlp/data/
+    # require cc_download_articles is in supply_chain_extract/data/
     # data_dir = get_data_path("cc_download_articles")
     # CHANGE THIS IF NEED BE!
     data_dir = "/home/buddy/workspace/datasets/commoncrawl/cc_download_articles"
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     art_db = client["news_articles"]
 
     # --
-    # get the company names from refinitiv value chains
+    # get the company names from knowledge_base value chains
     # ---
     print(f"database names: {client.list_database_names()}")
 
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     # find many - store in dataframe - is this now slow?
     t1 = time.time()
     # get the value chain data
-    vc_col = client["refinitiv"]['VCHAINS']
+    vc_col = client["knowledge_base"]['VCHAINS']
     vc = pd.DataFrame(list(vc_col.find(filter={})))
     t2 = time.time()
     print(f"time to read in all value chains: {t2-t1:.2f} seconds")

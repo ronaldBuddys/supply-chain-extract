@@ -12,7 +12,7 @@ from bson import ObjectId
 
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -22,15 +22,15 @@ except NameError:
     src_path = None
 
 
-from nlp.utils import get_database
-from nlp import get_configs_path, get_data_path, get_plots_path
+from supply_chain_extract.utils import get_database
+from supply_chain_extract import get_configs_path, get_data_path, get_plots_path
 
 
 if __name__ == "__main__":
 
     pd.set_option("display.max_columns", 200)
 
-    # require cc_download_articles is in nlp/data/
+    # require cc_download_articles is in supply_chain_extract/data/
     # data_dir = get_data_path("cc_download_articles")
     # data_dir = "/mnt/hd1/data/cc_download_articles"
     # assert os.path.exists(data_dir), f"data_dir:\n{data_dir}\ndoes not exist, get from "
@@ -49,13 +49,13 @@ if __name__ == "__main__":
                           clustername=mdb_cred["cluster_name"])
 
     # --
-    # get the company names from refinitiv value chains
+    # get the company names from knowledge_base value chains
     # ---
 
     print(f"database names: {client.list_database_names()}")
 
     # find many - store in dataframe
-    vc = pd.DataFrame(list(client["refinitiv"]['VCHAINS'].find(filter={})))
+    vc = pd.DataFrame(list(client["knowledge_base"]['VCHAINS'].find(filter={})))
     # drop _id col
     vc.drop("_id", axis=1, inplace=True)
 
@@ -96,4 +96,4 @@ if __name__ == "__main__":
     print(f"number of articles found with a mention of company name: {len(list(arts_db['articles'].find()))}")
 
     # TODO: use 'names_found_in_articles' collection to get articles mentioning name
-    #  and search for the suppliers / customers  usign data from refinitiv
+    #  and search for the suppliers / customers  usign data from knowledge_base

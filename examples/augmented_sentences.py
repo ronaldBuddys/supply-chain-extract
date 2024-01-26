@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.getcwd(), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -32,8 +32,8 @@ except NameError:
     src_path = None
 
 
-from nlp.utils import get_database, niave_long_to_short_name, get_knowledge_base_from_value_chain_data
-from nlp import get_configs_path, get_data_path
+from supply_chain_extract.utils import get_database, niave_long_to_short_name, get_knowledge_base_from_value_chain_data
+from supply_chain_extract import get_configs_path, get_data_path
 
 
 spacy = SpacyPreprocessor(text_field="text", doc_field="doc", memoize=True)
@@ -278,7 +278,7 @@ if __name__ == "__main__":
     # # out["num_sentence"] += 1
     # res = out.to_dict("records")
     #
-    # from nlp import get_data_path
+    # from supply_chain_extract import get_data_path
     # with open(get_data_path("text_with_weak_labels.json"), "w") as f:
     #     json.dump(res, f, indent=4)
     #
