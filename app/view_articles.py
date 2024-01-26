@@ -4,19 +4,15 @@ import re
 import sys
 import json
 
-import requests
 import dash
-from dash import dash_table
 from dash import dcc
 from dash import html
-
-from pymongo import UpdateOne
-
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+# TODO: remove this - use pip install -e . to install the package
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -26,8 +22,8 @@ except NameError:
     src_path = None
 
 
-from nlp.utils import get_database, get_list_from_tree, make_reg_tree
-from nlp import get_configs_path, get_data_path
+from supply_chain_extract.utils import get_database, get_list_from_tree, make_reg_tree
+from supply_chain_extract import get_configs_path, get_data_path
 
 
 # ---
@@ -40,10 +36,9 @@ with open(get_configs_path("mongo.json"), "r+") as f:
     mdb_cred = json.load(f)
 
 # get mongodb client - for connections
-client = get_database(username=mdb_cred["username"],
-                      password=mdb_cred["password"],
-                      clustername=mdb_cred["cluster_name"])
+client = get_database(**mdb_cred)
 
+# connect to the news_articles database
 art_db = client["news_articles"]
 
 
@@ -161,6 +156,7 @@ def list_to_text(l):
 
 default_text = ["here is some text", html.Mark(" highlight "), "more text ", html.Br(), "after"]
 
+
 app.layout = html.Div([
 
     # Header
@@ -169,7 +165,20 @@ app.layout = html.Div([
         html.H1(children='Article Viewer: Long to Short Name Review',
                 style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"},
                 className='twelve columns'),
+        html.H6(children=["A company can be referred to by their ",
+                          html.Mark("long (full) name", style={"backgroundColor": "yellow", 'display': 'inline-block'}),
+                          "  as well as one of their ",
+                          html.Mark("short (common) name(s)", style={"backgroundColor": "pink", 'display': 'inline-block'})],
+                style={'margin-top': '-25px'},
+                # style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"},
+                className='twelve columns'),
+        html.H6(children=["use the options below to select a company's long name, view articles to add (or remove) short names"],
+                style={'margin-top': '-10px'},
+                # style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"},
+                className='twelve columns'),
     ], className='row'),
+
+
 
     # Row 1 - each row is twelve columns wide
     # row 1
@@ -181,18 +190,18 @@ app.layout = html.Div([
             # ----
             html.H3("Select Company"),
             # radio dial to only select those with no short names
-            html.Label('Show only those un-checked?', style={'color': text_color, "font-weight": "bold"}    ),
+            html.Label('Show only those not checked already?', style={'color': text_color, "font-weight": "bold"}    ),
             dcc.RadioItems(
                 options=[{'label': i, 'value': i} for i in ['True', 'False']],
                 id='missing_short_names',
-                value='None',
+                value='False',
                 style={'color': 'black'},
                 labelStyle={'display': 'inline-block'}
             ),
             html.Div("", id="number_of_companies_to_select_from"),
             # TODO: provide some stats
             # long name select
-            html.Label("Long Name Select"),
+            html.Label("Long Name Select "),
             dcc.Dropdown(
                 id='long_name_dropdown',
                 options=unames_list_dict,
@@ -248,8 +257,8 @@ app.layout = html.Div([
             # TODO: fix text alignment
             html.Br(),
             html.Div([
-                html.Button("Prev", id="prev_article", className="one columns",  style={'textAlign': 'center'}),
-                html.Button("Next", id="next_article", className="one columns",  style={'textAlign': 'left'})
+                html.Button("Prev", id="prev_article", className="one columns",  style={'text-align': 'center', 'width': '45%'}),
+                html.Button("Next", id="next_article", className="one columns", style={'text-align': 'center', 'width': '45%'})
             ])
         ], className="three columns"),
         # article contents

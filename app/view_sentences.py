@@ -19,8 +19,9 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 
+# TODO: remove this - use pip install -e . to install the package
 try:
-    # python package (nlp) location - two levels up from this file
+    # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     # add package to sys.path if it's not already there
     if src_path not in sys.path:
@@ -30,8 +31,8 @@ except NameError:
     src_path = None
 
 
-from nlp.utils import get_database,  get_knowledge_base_from_value_chain_data
-from nlp import get_configs_path, get_data_path
+from supply_chain_extract.utils import get_database,  get_knowledge_base_from_value_chain_data
+from supply_chain_extract import get_configs_path, get_data_path
 
 pd.set_option("display.max_columns", 200)
 pd.set_option("display.max_colwidth", 70)
@@ -55,13 +56,11 @@ except Exception as e:
 
 
 # get credentials
-with open(get_configs_path("mongo0.json"), "r+") as f:
+with open(get_configs_path("mongo.json"), "r+") as f:
     mdb_cred = json.load(f)
 
-# # get mongodb client - for connections
-client = get_database(username=mdb_cred["username"],
-                      password=mdb_cred["password"],
-                      clustername=mdb_cred["cluster_name"])
+# get mongodb client - for connections
+client = get_database(**mdb_cred)
 
 art_db = client["news_articles"]
 
@@ -121,6 +120,7 @@ t0 = time.time()
 gl_tmp = list(art_db['gold_labels'].find(filter=filter))
 gl_tmp = pd.DataFrame(gl_tmp)
 gl_tmp.drop("_id", axis=1, inplace=True)
+gl_tmp = gl_tmp.drop_duplicates()
 t1 = time.time()
 print(f"time to get all gold labels : {t1-t0:.2f} seconds")
 
@@ -283,7 +283,7 @@ act_after_label = ["None", "Next", "Prev", "Random"]
 act_after_label_opts = [{'label': i, "value": i} for i in act_after_label]
 
 # gold label options
-gl_opt_list = ["Supplier", "NA", "unsure", "partnership", "owner", "competitor", "reverse"]
+gl_opt_list = ["Supplier", "not specified", "unsure", "partnership", "owner", "competitor", "reverse"]
 gl_opt = [{'label': i, "value": i} for i in gl_opt_list]
 # add None - not needed - could use select unlabelled
 # gl_opt.append({"label": "None", "values": None})
@@ -316,7 +316,7 @@ print("app layout")
 app.layout = html.Div([
 
     html.Div([
-        html.H3(children='Main Selection',
+        html.H3(children='Sentence Review:',
                 style={'color': text_color, 'textAlign': 'left', "font-weight": "bold", "display": 'inline-block'},
                 className="threeColumns"),
         html.H3(children=question_text,
@@ -324,8 +324,15 @@ app.layout = html.Div([
                 className="fiveColumns"),
     ], className='row'),
 
+    html.Div([
+        html.H6(children='Filters:',
+                style={'color': text_color, 'textAlign': 'left', "font-weight": "bold", 'margin-top': '-25px'}),
+    ]),
+
     # Main Selection
     html.Div([
+        # html.H6(children='Sentence Filternasdf',
+        #         style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"}),
 
         html.Div([
             html.Label("Entity1"),
@@ -364,12 +371,12 @@ app.layout = html.Div([
         ], className="three columns"),
 
 
-    ], className='row'),
+    ], className='row', style={'margin-top': '-10px'}),
     # -----
     # filtering Selection
     # -----
-    html.H6(children='Filtering',
-            style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"}),
+    # html.H6(children='Filtering',
+    #         style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"}),
 
     html.Div([
         # number of sentences
@@ -411,7 +418,7 @@ app.layout = html.Div([
     ], className='row'),
 
     # information about the sentences
-    html.H6(children='Sentence Info',
+    html.H6(children='Sentence Info:',
             style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"}),
 
     html.Div([
@@ -467,7 +474,7 @@ app.layout = html.Div([
     ], className="row"),
 
     # Navigation buttons
-    html.H6(children='Navigation Buttons',
+    html.H6(children='Sentence Navigation Buttons:',
             style={'color': text_color, 'textAlign': 'left', "font-weight": "bold"}),
 
     html.Div([
@@ -482,7 +489,7 @@ app.layout = html.Div([
     # Labelling buttons
     html.Div([
         # -
-        html.H6(children='Labelling',
+        html.H6(children='Choose Label',
                 style={'color': text_color, "font-weight": "bold", "display": 'inline-block'}),
         html.H6(children=question_text,
                 style={"margin-left": "15px", "font-weight": "bold",  "display": 'inline-block'}),
@@ -716,7 +723,7 @@ def available_titles(e1, e2, rel, wl, ns, ep, ul, gl_sel,
             if button_id == "supply_btn":
                 glabel = "Supplier"
             elif button_id == "norel_btn":
-                glabel = "NA"
+                glabel = "not specified"
             elif button_id == "unsure_btn":
                 glabel = "unsure"
             elif button_id == "prtnr_btn":
