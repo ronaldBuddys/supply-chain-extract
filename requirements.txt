@@ -1,4 +1,4 @@
-numpy==1.19.5
+numpy>=1.20.0
 scipy==1.7.3
 pandas==1.4.0
 nltk==3.6.7
@@ -14,8 +14,8 @@ dnspython==2.2.0
 matplotlib==3.5.1
 news-please==1.5.21
 spacy==3.2.2
-dash==2.2.0
+dash>=2.3.1
 seaborn==0.11.2
-scikit-learn==0.24.2
-snorkel==0.9.8
+scikit-learn>=0.24.2
+snorkel==0.9.9
 python-Levenshtein==0.12.2
