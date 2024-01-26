@@ -8,19 +8,28 @@ import numpy as np
 import json
 import re
 from OpenPermID import OpenPermID
-from src import get_configs_path
+from supply_chain_extract import get_configs_path
 
 
-def get_database(username, password, clustername):
+def get_database(host=None, username=None, password=None, clustername=None, **kwargs):
+    # TODO: allow
+    # TODO: change fucntion name form get_database - to get_mongo_client , or connect, or whatever
     # source: https://www.mongodb.com/languages/python
 
-    # Provide the mongodb atlas url to connect python to mongodb using pymongo
-    # TODO: review the particulars of connection string to understand impact - i.e. databasename was removed
-    CONNECTION_STRING = f"mongodb+srv://{username}:{password}@{clustername}.mongodb.net/?retryWrites=true&w=majority"
+    if host is None:
 
-    # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
+        # Provide the mongodb atlas url to connect python to mongodb using pymongo
+        # TODO: review the particulars of connection string to understand impact - i.e. databasename was removed
+        # TODO: username / password should be parsed https://pymongo.readthedocs.io/en/stable/examples/authentication.html - is that needed for mongodb.net?
+        CONNECTION_STRING = f"mongodb+srv://{username}:{password}@{clustername}.mongodb.net/?retryWrites=true&w=majority"
 
-    client = MongoClient(CONNECTION_STRING)
+        # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
+
+        client = MongoClient(CONNECTION_STRING, **kwargs)
+
+    else:
+        client = MongoClient(host, **kwargs)
+
 
     # Create the database for our example (we will use the same database throughout the tutorial
     return client
@@ -38,10 +47,10 @@ def search_company(ticker, api_key=None, num=10):
         with open(keys_file, "r") as f:
             keys = json.load(f)
 
-        assert "refinitiv" in keys, "'refinitiv' not found in keys.json\n" \
-                                   "to get one follow instructions found at\n" \
-                                   "https://github.com/Refinitiv-API-Samples/Article.OpenPermID.Python.APIs"
-        api_key = keys["refinitiv"]
+        assert "knowledge_base" in keys, "'knowledge_base' not found in keys.json\n" \
+                                         "to get one follow instructions found at\n" \
+                                         "https://github.com/Refinitiv-API-Samples/Article.OpenPermID.Python.APIs"
+        api_key = keys["knowledge_base"]
 
     # initialise OpenPermID object, and set access token (api_key)
     opid = OpenPermID()
@@ -219,7 +228,7 @@ def get_bidirectional_suppliers(kb, verbose=True):
     i.e. (A supplies B) AND (B supplies A)"""
 
     if verbose:
-        print("getting companys that have bi-directional supplier relationship")
+        print("getting companies that have bi-directional supplier relationship")
 
     e1s = kb["entity1"].values
     e2s = kb["entity2"].values
