@@ -3,9 +3,9 @@
     "change my_local_download* to be somewhere on your file system",
     "a config like this can be provided as an argument to news_please.py, i.e.:",
     "$python -m nlp.examples.news_please <path_to_config>",
-    "if file not provide as argument script will use nlp/configs/commoncrawl.json",
+    "if file not provide as argument script will use configs/commoncrawl.json",
     "if above file is not present, it will through an error",
-    "after making adjustments below this file can be saved as nlp/configs/commoncrawl.json",
+    "after making adjustments below this file can be saved as configs/commoncrawl.json",
     "the *valid_hosts list specifies which sources to extract articles from",
     "if my_delete_warc_after_extraction is false the warc file will remain on file system",
     "these files average 1.1GB, with a day having about 16 of these"
