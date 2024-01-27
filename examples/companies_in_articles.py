@@ -32,7 +32,6 @@ if __name__ == "__main__":
 
     # require cc_download_articles is in supply_chain_extract/data/
     # data_dir = get_data_path("cc_download_articles")
-    # data_dir = "/mnt/hd1/data/cc_download_articles"
     # assert os.path.exists(data_dir), f"data_dir:\n{data_dir}\ndoes not exist, get from "
 
     # ----
@@ -44,9 +43,7 @@ if __name__ == "__main__":
         mdb_cred = json.load(f)
 
         # get mongodb client - for connections
-    client = get_database(username=mdb_cred["username"],
-                          password=mdb_cred["password"],
-                          clustername=mdb_cred["cluster_name"])
+    client = get_database(**mdb_cred)
 
     # --
     # get the company names from knowledge_base value chains
@@ -55,7 +52,7 @@ if __name__ == "__main__":
     print(f"database names: {client.list_database_names()}")
 
     # find many - store in dataframe
-    vc = pd.DataFrame(list(client["knowledge_base"]['VCHAINS'].find(filter={})))
+    vc = pd.DataFrame(list(client["knowledge_base"]['KB'].find(filter={})))
     # drop _id col
     vc.drop("_id", axis=1, inplace=True)
 

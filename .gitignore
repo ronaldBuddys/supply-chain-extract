@@ -4,7 +4,7 @@ supply_chain_extract/data/articles.json
 supply_chain_extract/data/full_sentences.json
 
 # ignore contents of configs
-nlp/configs/*.json
+configs/*.json
 
 # pycharm
 .idea/

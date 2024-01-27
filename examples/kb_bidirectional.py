@@ -38,7 +38,7 @@ if __name__ == "__main__":
     # ---
 
     # read in locally stored valued chaines
-    vc = pd.read_csv(get_data_path("VCHAINS.csv"))
+    vc = pd.read_csv(get_data_path("KB.csv"))
 
     # make knowledge base
     kb = get_knowledge_base_from_value_chain_data(vc)

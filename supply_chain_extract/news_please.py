@@ -155,6 +155,7 @@ def get_unfetched_commoncrawl_files(art_db, use_dates=None):
 
 if __name__ == "__main__":
 
+    # TODO: remove reference to knowledge_base - not needed
     # TODO: clean up this file - remove
     # TODO: require data_dir exists
     # TODO: allow parameters to be set from config
@@ -167,6 +168,7 @@ if __name__ == "__main__":
     # ----
 
     # read in configuration file
+    # TODO: use parseargs instead of this!
     cc_config = get_config(sysargv=sys.argv, argpos=1, verbose=True)
 
     print("*" * 50)
@@ -175,7 +177,6 @@ if __name__ == "__main__":
 
     # use subset of all date (i.e. only the 'updates' found in the value chain data)
     use_subset_of_dates = cc_config.get("only_use_dates_from_supply_chain_data", False)
-
 
     # download_dir = cc_config.get("download_dir", None)
     #
@@ -196,15 +197,13 @@ if __name__ == "__main__":
         mdb_cred = json.load(f)
 
     # get mongodb client - for connections
-    client = get_database(username=mdb_cred["username"],
-                          password=mdb_cred["password"],
-                          clustername=mdb_cred["cluster_name"])
+    client = get_database(**mdb_cred)
     art_db = client["news_articles"]
 
     # get all entries from value chain data
     # TODO: select only relevant 'columns' using a 'projection' in the find()
     t0 = time.time()
-    vc = pd.DataFrame(list(client["knowledge_base"]["VCHAINS"].find(filter={})))
+    vc = pd.DataFrame(list(client["knowledge_base"]["KB"].find(filter={})))
     t1 = time.time()
 
     # ----
@@ -364,6 +363,7 @@ if __name__ == "__main__":
         # select a random(?) warc file
         warc_file = np.random.choice(ccf["name"].values, 1)[0]
         base_url = 'https://commoncrawl.s3.amazonaws.com/'
+        base_url = 'https://data.commoncrawl.org/'
         warc_download_url = base_url + warc_file
 
         # write to mongo this warc file has* been fetched

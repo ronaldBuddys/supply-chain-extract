@@ -64,7 +64,7 @@ if __name__ == "__main__":
     # read in value chain data / knowledge base
     # ---
 
-    vc = pd.DataFrame(list(client["knowledge_base"]["VCHAINS"].find(filter={})))
+    vc = pd.DataFrame(list(client["knowledge_base"]["KB"].find(filter={})))
 
     # there are some missing comany names? exclude those
     vc = vc.loc[~pd.isnull(vc['Company Name'])]

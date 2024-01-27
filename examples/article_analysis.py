@@ -145,7 +145,7 @@ if __name__ == "__main__":
     # read in value chain data
     # ---
 
-    vc = pd.DataFrame(list(client["knowledge_base"]["VCHAINS"].find(filter={})))
+    vc = pd.DataFrame(list(client["knowledge_base"]["KB"].find(filter={})))
 
     #TODO: Connect to DB to load latest mapping of long to short name
     #print(f"database names: {client.list_database_names()}")

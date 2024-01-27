@@ -70,7 +70,7 @@ if __name__ == "__main__":
     # delete all entries
     collection_name.delete_many(filter={})
 
-    prev_fetched = pd.DataFrame(list(client['knowledge_base']["VCHAINS"].find(filter={})))
+    prev_fetched = pd.DataFrame(list(client['knowledge_base']["KB"].find(filter={})))
     
     filename = src_path + "/supply_chain_extract/data/VCHain_DB_Data_As_of_" + time.strftime("%Y_%m_%d_%H_%M")+".xlsx"
     print("Saving {}".format(filename))

@@ -260,10 +260,10 @@ if __name__ == "__main__":
     # ---
 
     print('getting knowledge base')
-    # vc = pd.DataFrame(list(client["knowledge_base"]["VCHAINS"].find(filter={})))
+    # vc = pd.DataFrame(list(client["knowledge_base"]["KB"].find(filter={})))
     # vc.drop("_id", axis=1, inplace=True)
-    # vc.to_csv(get_data_path("VCHAINS.csv"), index=False)
-    vc = pd.read_csv(get_data_path("VCHAINS.csv"))
+    # vc.to_csv(get_data_path("KB.csv"), index=False)
+    vc = pd.read_csv(get_data_path("KB.csv"))
 
     # there are some missing comany names? exclude those
     # vc = vc.loc[~pd.isnull(vc['Company Name'])]

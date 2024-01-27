@@ -21,7 +21,7 @@ if __name__ == "__main__":
                           clustername=mdb_cred["cluster_name"])
 
     # get files from page_info downloads
-    page_info = "VCHAINS"
+    page_info = "KB"
 
     # connect to knowledge_base database
     db = client["knowledge_base"]

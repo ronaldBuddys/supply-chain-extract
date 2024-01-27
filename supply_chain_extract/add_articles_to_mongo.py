@@ -27,17 +27,43 @@ except NameError:
     src_path = None
 
 
-from supply_chain_extract.utils import get_database, get_list_from_tree, make_reg_tree
+from supply_chain_extract.utils import get_database, get_list_from_tree, make_reg_tree, get_config
 from supply_chain_extract import get_configs_path, get_data_path
 
 
 if __name__ == "__main__":
 
+    # TODO: review this script and clean up
     # TODO: investigate why not all articles have 'names_in_text' entry - they should
     # TODO: bulk upload for articles searched is very slow
     # TODO: move document with 'docname' in 'articles_searched' into own database
 
     pd.set_option("display.max_columns", 200)
+
+    # ----
+    # common crawl config
+    # ----
+
+    # read in configuration file
+    # TODO: use parseargs instead of this!
+    cc_config = get_config(sysargv=sys.argv, argpos=1, verbose=True)
+
+    print("*" * 50)
+    print("using config file")
+    print(json.dumps(cc_config, indent=4))
+
+    # ----
+    # connect to database
+    # ----
+
+    # get credentials
+    with open(get_configs_path("mongo.json"), "r+") as f:
+        mdb_cred = json.load(f)
+
+    # get mongodb client - for connections
+    client = get_database(**mdb_cred)
+
+    art_db = client["news_articles"]
 
     # ----
     # parameters
@@ -55,25 +81,8 @@ if __name__ == "__main__":
     batch_size = 1000
 
     # require cc_download_articles is in supply_chain_extract/data/
-    # data_dir = get_data_path("cc_download_articles")
-    # CHANGE THIS IF NEED BE!
-    data_dir = "/home/buddy/workspace/datasets/commoncrawl/cc_download_articles"
-    # assert os.path.exists(data_dir), f"data_dir:\n{data_dir}\ndoes not exist, get from "
-
-    # ----
-    # connect to database
-    # ----
-
-    # get credentials
-    with open(get_configs_path("mongo.json"), "r+") as f:
-        mdb_cred = json.load(f)
-
-    # get mongodb client - for connections
-    client = get_database(username=mdb_cred["username"],
-                          password=mdb_cred["password"],
-                          clustername=mdb_cred["cluster_name"])
-
-    art_db = client["news_articles"]
+    data_dir = cc_config['my_local_download_dir_article']
+    assert os.path.exists(data_dir), f"data_dir:\n{data_dir}\ndoes not exist!"
 
     # --
     # get the company names from knowledge_base value chains
@@ -84,7 +93,7 @@ if __name__ == "__main__":
     # find many - store in dataframe - is this now slow?
     t1 = time.time()
     # get the value chain data
-    vc_col = client["knowledge_base"]['VCHAINS']
+    vc_col = client["knowledge_base"]['KB']
     vc = pd.DataFrame(list(vc_col.find(filter={})))
     t2 = time.time()
     print(f"time to read in all value chains: {t2-t1:.2f} seconds")
@@ -105,6 +114,7 @@ if __name__ == "__main__":
     if parents_only:
         company_names = vc["Parent Name"].unique()
     else:
+        # TODO: remove confidence score
         company_names = np.concatenate([vc["Parent Name"].unique(),
                                         vc.loc[vc['Confidence Score (%)'] > 0.9, "Company Name"].unique()])
         # there are some nans in the data, on the Company Name side?
