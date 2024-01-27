@@ -12,11 +12,10 @@ import pandas as pd
 import numpy as np
 import datetime
 
-from bson import ObjectId
-from newsplease.crawler import commoncrawl_crawler as commoncrawl_crawler
 from newsplease.crawler.commoncrawl_extractor import CommonCrawlExtractor
 from newsplease.crawler.commoncrawl_crawler import __start_commoncrawl_extractor
 
+# remove this, use pip install -e .
 try:
     # python package (supply_chain_extract) location - two levels up from this file
     src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
@@ -29,7 +28,7 @@ except NameError:
 
 
 from supply_chain_extract import get_parent_path, get_configs_path
-from supply_chain_extract.utils import get_database
+from supply_chain_extract.utils import get_database, get_config
 
 
 def __setup__():
@@ -83,58 +82,6 @@ def on_valid_article_extracted(article):
             json.dump(article.__dict__, outfile, default=str, indent=4, sort_keys=True, ensure_ascii=False)
         # ...
 
-
-def get_config(sysargv, argpos=1, default="commoncrawl.json", verbose=True):
-    """allow config to be passed in as argument to script"""
-
-    conf_found = False
-    try:
-        conf_file = sysargv[argpos]
-
-        # check file exists
-        file_exists = False
-        if os.path.exists(conf_file):
-            if verbose:
-                print(f"conf_file:\n{conf_file}\nexists")
-            file_exists = True
-        else:
-            if verbose:
-                print(f"file: {conf_file}, does not exist, checking cwd")
-            conf_file = os.path.join(os.getcwd(), conf_file)
-            if os.path.exists(conf_file):
-                if verbose:
-                    print(f"conf_file:\n{conf_file}\nexists")
-                file_exists = True
-
-        # if the file exists: make sure it is a json file
-        if file_exists:
-            if re.search("\.json$", conf_file, re.IGNORECASE):
-                if verbose:
-                    print("conf_file is the right type (json)")
-                conf_found = True
-            else:
-                if verbose:
-                    print("conf_file is NOT the right type (json)")
-
-    except IndexError:
-        if verbose:
-            print("index error reading conf from arg")
-        conf_found = False
-
-    if not conf_found:
-        if verbose:
-            print(f"using default configuration (from package): {default}")
-        conf_file = get_configs_path(default)
-        assert os.path.exists(conf_file), f"conf_file:\n{conf_file}\ndoes not exist"
-
-    # ---
-    # read in config
-    # ---
-
-    with open(conf_file, "r") as f:
-        cc_config = json.load(f)
-
-    return cc_config
 
 
 def get_unfetched_commoncrawl_files(art_db, use_dates=None):

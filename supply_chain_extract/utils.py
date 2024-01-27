@@ -318,6 +318,59 @@ def get_most_confidence_bidirectional_pair(bi_dir):
     return bd
 
 
+def get_config(sysargv, argpos=1, default="commoncrawl.json", verbose=True):
+    """allow config to be passed in as argument to script"""
+
+    conf_found = False
+    try:
+        conf_file = sysargv[argpos]
+
+        # check file exists
+        file_exists = False
+        if os.path.exists(conf_file):
+            if verbose:
+                print(f"conf_file:\n{conf_file}\nexists")
+            file_exists = True
+        else:
+            if verbose:
+                print(f"file: {conf_file}, does not exist, checking cwd")
+            conf_file = os.path.join(os.getcwd(), conf_file)
+            if os.path.exists(conf_file):
+                if verbose:
+                    print(f"conf_file:\n{conf_file}\nexists")
+                file_exists = True
+
+        # if the file exists: make sure it is a json file
+        if file_exists:
+            if re.search("\.json$", conf_file, re.IGNORECASE):
+                if verbose:
+                    print("conf_file is the right type (json)")
+                conf_found = True
+            else:
+                if verbose:
+                    print("conf_file is NOT the right type (json)")
+
+    except IndexError:
+        if verbose:
+            print("index error reading conf from arg")
+        conf_found = False
+
+    if not conf_found:
+        if verbose:
+            print(f"using default configuration (from package): {default}")
+        conf_file = get_configs_path(default)
+        assert os.path.exists(conf_file), f"conf_file:\n{conf_file}\ndoes not exist"
+
+    # ---
+    # read in config
+    # ---
+
+    with open(conf_file, "r") as f:
+        cc_config = json.load(f)
+
+    return cc_config
+
+
 if __name__ == "__main__":
 
     # search for company information
