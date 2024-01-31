@@ -1,6 +1,6 @@
 # Supply Chain Extraction from News Articles 
 
-using an Large Language Model (DistilBERT), data programming and distance supervision 
+using an Large Language Model (DistilBERT), data programming and distant supervision 
 
 This work was done as part of a project for a Statistical NLP course in 2022. 
 
@@ -8,7 +8,7 @@ A high-level overview can be found [here](https://ronaldbuddys.github.io/supply-
 
 ## Database: MongoDB
 
-requires access to a MongoDB server. for a quick start restore from 
+requires access to a MongoDB server (local or remote). for a quick start restore from 
 a database [dump](https://drive.google.com/file/d/1YH6TcVo7klXb2AMOiFodi6HUfrrfWxV4/view?usp=sharing)
 
 ## Setup Virtual Environment
@@ -72,15 +72,27 @@ in classification fine-tuning
 ![Dashboard Example](images/sentence_review_dashboard.png "Dashboard Usage")
 
 
+### Distant Supervision (noisy label generation)
 
-### Overview of Distance supervision
+Distant supervision is a technique for automatically generating labels for training data for relation extraction tasks. 
+It's assumption is if two entities are known to have a certain relation, any text mentioning these entities might express that relation. 
+This allows for leveraging an existing knowledge base to annotate large text corpora automatically.
+However, this method can introduce noise to labels as not all mentions of entity pairs necessarily reflect the intended relation. 
 
-TODO: add!
+For more details see: [Distant supervision for relation extraction without labeled data](https://web.stanford.edu/~jurafsky/mintz.pdf)
 
-### Data Programming
+### Data Programming (noisy label generation)
 
-TODO: add!
+Data Programming allows for the creation of large training datasets by using weak supervision provided by labeling functions,
+reducing the need to rely on manually annotated data. Labeling functions, which are heuristics or rules designed by domain experts, 
+automatically annotate data with probable labels. The approach aggregates these noisy, conflicting annotations to generate a probabilistically labeled dataset. 
 
-### Notebooks Used for Classification Fine-Tuning
+For more details see: [Data Programming:
+Creating Large Training Sets, Quickly](https://dawn.cs.stanford.edu/pubs/snorkel-nips2016.pdf), as well as the 
+as the Python package used for creating labelling functions: [snorkel](https://www.snorkel.org/)
 
-TODO: add!
+### Notebook Used for Classification Fine-Tuning
+
+<a target="_blank" href="https://colab.research.google.com/github/ronaldBuddys/supply-chain-extract/blob/main/examples/fine_tune_BERT_on_supply_chain.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
